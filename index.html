@@ -1,0 +1,2994 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Studio Command Hub — Папки проектов, команда, задачи и дорожная карта</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg-main: #0c0e14;
+      --bg-panel: #131620;
+      --bg-card: #1a1e2b;
+      --bg-card-hover: #222838;
+      --border-color: #2b3347;
+      --accent: #6366f1;
+      --accent-soft: rgba(99, 102, 241, 0.16);
+      --accent-2: #06b6d4;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --glow: rgba(99, 102, 241, 0.35);
+      --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    h1, h2, h3, .display-font {
+      font-family: var(--font-display);
+    }
+
+    /* Full-screen Scenic Backdrop + Canvas FX + Atmospheric Filters */
+    #scenicBackdrop {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+      opacity: 0.45;
+      transition: opacity 0.4s ease;
+    }
+
+    #fxCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.72;
+      transition: opacity 0.3s ease;
+    }
+
+    #cursorGlow {
+      position: fixed;
+      width: 420px;
+      height: 420px;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 1;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, var(--accent-soft) 0%, transparent 68%);
+      opacity: 0.55;
+      transition: opacity 0.3s ease;
+    }
+
+    .fx-overlay-vhs {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px),
+        radial-gradient(circle at center, transparent 52%, rgba(0,0,0,0.68) 100%);
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+    .fx-overlay-vhs.active { opacity: 0.8; }
+
+    .fx-overlay-grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background:
+        radial-gradient(circle at 18% 15%, var(--accent-soft), transparent 46%),
+        radial-gradient(circle at 82% 85%, rgba(255,255,255,0.03), transparent 48%),
+        radial-gradient(circle at center, transparent 48%, rgba(0,0,0,0.68) 100%);
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+    .fx-overlay-grain.active { opacity: 0.95; }
+
+    .fx-overlay-grid {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+    .fx-overlay-grid.active { opacity: 1; }
+
+    .app-shell {
+      position: relative;
+      z-index: 5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel {
+      background-color: color-mix(in srgb, var(--bg-panel) 90%, transparent);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-color);
+    }
+
+    .card {
+      background-color: color-mix(in srgb, var(--bg-card) 92%, transparent);
+      border: 1px solid var(--border-color);
+      transition: border-color 0.2s ease, transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+      background-color: var(--bg-card-hover);
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--border-color));
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent-2) 45%, var(--accent)));
+      color: #ffffff;
+      box-shadow: 0 0 20px var(--glow);
+      transition: filter 0.15s ease, transform 0.1s ease;
+    }
+    .btn-accent:hover { filter: brightness(1.12); }
+    .btn-accent:active { transform: scale(0.98); }
+
+    .tab-btn {
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+    }
+    .tab-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+    .tab-btn.active {
+      color: var(--text-main);
+      border-bottom-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .accent-pill {
+      background: var(--accent-soft);
+      color: var(--text-main);
+      border: 1px solid color-mix(in srgb, var(--accent) 65%, transparent);
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.35); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.55); }
+
+    /* Roadmap */
+    .roadmap-viewport {
+      overflow-x: auto;
+      overflow-y: visible;
+      padding: 24px 16px 32px;
+      position: relative;
+    }
+    .roadmap-track {
+      display: inline-flex;
+      align-items: center;
+      position: relative;
+      min-width: 100%;
+      padding: 158px 32px;
+      transform-origin: left center;
+      transition: transform 0.2s ease;
+    }
+    .roadmap-spine {
+      position: absolute;
+      left: 32px;
+      right: 32px;
+      top: 50%;
+      height: 5px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent));
+      box-shadow: 0 0 18px var(--glow);
+      transform: translateY(-50%);
+      border-radius: 999px;
+      z-index: 1;
+    }
+    .roadmap-node-col {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 260px;
+      flex-shrink: 0;
+    }
+    .roadmap-branch-top,
+    .roadmap-branch-bottom {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 3;
+    }
+    .roadmap-branch-top { bottom: calc(50% + 44px); align-items: flex-end; }
+    .roadmap-branch-bottom { top: calc(50% + 54px); align-items: flex-start; }
+
+    .branch-chip {
+      position: relative;
+      max-width: 162px;
+      font-size: 11px;
+      line-height: 1.25;
+      padding: 6px 8px;
+      border-radius: 9px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+      text-align: left;
+    }
+    .branch-chip:hover {
+      transform: scale(1.09);
+      border-color: var(--accent);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.5), 0 0 14px var(--glow);
+      z-index: 10;
+    }
+    .branch-chip::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      width: 2px;
+      height: 24px;
+      background: color-mix(in srgb, var(--accent) 70%, var(--border-color));
+      transform: translateX(-50%);
+    }
+    .roadmap-branch-top .branch-chip::after { top: 100%; }
+    .roadmap-branch-bottom .branch-chip::after { bottom: 100%; }
+
+    .drop-target-active {
+      outline: 2px dashed var(--accent);
+      background: var(--accent-soft) !important;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.76);
+      backdrop-filter: blur(6px);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      animation: fadeSlideUp 0.2s ease;
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    input, select, textarea {
+      background-color: rgba(0, 0, 0, 0.34);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+    select option {
+      background-color: #131620;
+      color: #f1f5f9;
+    }
+  </style>
+</head>
+<body>
+  <div id="scenicBackdrop"></div>
+  <div id="cursorGlow"></div>
+  <canvas id="fxCanvas"></canvas>
+  <div id="fxVhsOverlay" class="fx-overlay-vhs"></div>
+  <div id="fxGrainOverlay" class="fx-overlay-grain"></div>
+  <div id="fxGridOverlay" class="fx-overlay-grid"></div>
+
+  <div class="app-shell">
+    <!-- Top Global Bar -->
+    <header class="panel sticky top-0 z-30 border-t-0 border-x-0 px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <button id="backToHomeBtn" class="hidden px-2.5 py-1.5 rounded-lg card text-xs font-semibold flex items-center gap-1.5 shrink-0">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+          <span data-i18n="allFoldersBtn">Все папки</span>
+        </button>
+
+        <div id="brandBadge" class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border" style="background: var(--accent-soft); border-color: var(--accent);">
+          <span id="brandIconSlot"></span>
+        </div>
+
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 id="headerTitle" class="font-bold text-sm sm:text-base truncate">Studio Command Hub</h1>
+            <span id="saveStatusBadge" class="hidden sm:inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span id="saveStatusText">Сохранено</span>
+            </span>
+          </div>
+          <p id="headerSubtitle" class="text-xs truncate" style="color: var(--text-muted);"></p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+        <button id="openThemeModalBtn" class="hidden px-2.5 py-1.5 rounded-lg text-xs font-medium card flex items-center gap-1.5">
+          <i data-lucide="palette" class="w-3.5 h-3.5" style="color: var(--accent);"></i>
+          <span class="hidden sm:inline" data-i18n="themeBtn">Тема и FX</span>
+        </button>
+
+        <select id="fxLevelSelect" class="py-1.5 px-2 text-xs hidden sm:inline-block" title="Уровень спецэффектов">
+          <option value="high">FX: Макс</option>
+          <option value="low">FX: Средн</option>
+          <option value="off">FX: Выкл</option>
+        </select>
+
+        <button id="toggleRoleLockBtn" class="px-2.5 py-1.5 rounded-lg text-xs font-medium card flex items-center gap-1.5">
+          <i id="roleLockIcon" data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span id="roleLockText" class="hidden md:inline">Главный</span>
+        </button>
+
+        <button id="openShareModalBtn" class="px-2.5 py-1.5 rounded-lg text-xs font-medium card flex items-center gap-1.5">
+          <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline" data-i18n="shareBtn">Сейв / Доступ</span>
+        </button>
+
+        <button id="openGuideBtn" class="p-1.5 rounded-lg card" title="Инструкция по сайту">
+          <i data-lucide="help-circle" class="w-4 h-4"></i>
+        </button>
+
+        <button id="toggleMuteBtn" class="p-1.5 rounded-lg card" title="Звук таймера">
+          <i id="muteIcon" data-lucide="volume-2" class="w-4 h-4"></i>
+        </button>
+
+        <button id="toggleLangBtn" class="px-2.5 py-1.5 rounded-lg text-xs font-bold accent-pill">RU</button>
+      </div>
+    </header>
+
+    <!-- Folder Navigation Tabs -->
+    <nav id="folderNavBar" class="hidden panel border-t-0 border-x-0 px-3 sm:px-6 flex items-center gap-1 overflow-x-auto">
+      <button class="tab-btn px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium flex items-center gap-2 whitespace-nowrap" data-tab="team">
+        <i data-lucide="users" class="w-4 h-4"></i>
+        <span data-i18n="tabTeam">Команда</span>
+        <span id="badgeTeamCount" class="text-[11px] px-1.5 py-0.5 rounded-md bg-white/10">0</span>
+      </button>
+      <button class="tab-btn px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium flex items-center gap-2 whitespace-nowrap" data-tab="tasks">
+        <i data-lucide="list-checks" class="w-4 h-4"></i>
+        <span data-i18n="tabTasks">Задачи и День</span>
+        <span id="badgeTaskCount" class="text-[11px] px-1.5 py-0.5 rounded-md bg-white/10">0</span>
+      </button>
+      <button class="tab-btn px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium flex items-center gap-2 whitespace-nowrap" data-tab="roadmap">
+        <i data-lucide="map" class="w-4 h-4"></i>
+        <span data-i18n="tabRoadmap">Дорожная карта</span>
+        <span id="badgeMilestoneCount" class="text-[11px] px-1.5 py-0.5 rounded-md bg-white/10">0</span>
+      </button>
+      <button class="tab-btn px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium flex items-center gap-2 whitespace-nowrap" data-tab="director">
+        <i data-lucide="gauge" class="w-4 h-4"></i>
+        <span data-i18n="tabDirector">Пульт главного</span>
+      </button>
+    </nav>
+
+    <main id="mainContent" class="flex-1 p-3 sm:p-6 max-w-[1550px] w-full mx-auto"></main>
+  </div>
+
+  <div id="modalRoot" class="hidden"></div>
+  <div id="toastRoot" class="toast-container"></div>
+
+  <script>
+    /* =========================================================================
+       1. I18N DICTIONARY (RU / EN)
+    ========================================================================= */
+    const I18N = {
+      ru: {
+        hubTitle: 'Studio Command Hub',
+        hubSubtitle: 'Универсальная система папок для любых проектов и команд',
+        allFoldersBtn: 'Все папки',
+        saved: 'Сохранено (БД)',
+        savedDisk: 'Синхр. с файлом',
+        themeBtn: 'Тема и FX',
+        shareBtn: 'Сейв / Доступ',
+        directorMode: 'Главный',
+        memberMode: 'Участник',
+        homeHeading: 'Мои папки проектов',
+        homeDesc: 'Каждая папка — отдельный мир со своей таблицей команды, задачами дня, таймерами, дорожной картой и полноценным арт-оформлением под вашу тему.',
+        createFolderCardTitle: 'Создать новую папку проекта',
+        createFolderCardSub: 'Нажмите «+», напишите любую тему (например: «СССР город до нашей эры») — ИИ-движок соберёт панораму, флаги, палитру и спецэффекты',
+        openFolderBtn: 'Открыть папку',
+        membersShort: 'участн.',
+        tasksShort: 'задач',
+        milestonesShort: 'вех',
+        tabTeam: 'Команда',
+        tabTasks: 'Задачи и День',
+        tabRoadmap: 'Дорожная карта',
+        tabDirector: 'Пульт главного',
+        searchMemberPlaceholder: 'Поиск по имени, роли, опыту или телефону...',
+        addMember: 'Добавить участника',
+        quickAddMemberHint: 'Без ограничений по количеству участников',
+        orderCol: '№',
+        photoCol: 'Фото',
+        nameCol: 'Фамилия и Имя',
+        rolesCol: 'Роли',
+        skillCol: 'Опыт / Уровень',
+        phoneCol: 'Экстр. телефон',
+        actionsCol: 'Действия',
+        noMembers: 'Пока нет участников. Нажмите «Добавить участника».',
+        edit: 'Изменить',
+        del: 'Удалить',
+        allRoles: 'Все роли',
+        allLevels: 'Все уровни',
+        addTask: 'Новая задача',
+        addBreak: '+ Отдых 30 мин',
+        viewToday: 'План на сегодня',
+        viewAssign: 'По участникам',
+        viewByMilestone: 'По вехам карты',
+        membersStripTitle: 'Участники (нажмите для фильтра или перетащите задачу на карточку)',
+        allTasksFilter: 'Все задачи',
+        teamTasksFilter: 'Командные',
+        restTasksFilter: 'Отдых / Перерывы',
+        unassigned: 'Без исполнителя',
+        typePersonal: 'Личная',
+        typeTeam: 'Командная',
+        typeRest: 'Отдых / Перерыв',
+        statusTodo: 'К выполнению',
+        statusProgress: 'В процессе',
+        statusDone: 'Выполнено',
+        onRoadmap: 'На карте',
+        inToday: 'Сегодня',
+        timerStart: 'Старт',
+        timerPause: 'Пауза',
+        timerReset: 'Сброс',
+        minUnit: 'мин',
+        roadmapTitle: 'Дорожная карта / Линия прогресса',
+        addMilestone: 'Добавить веху (флаг)',
+        addTaskOnMap: '+ Задача на карту',
+        zoomLabel: 'Масштаб',
+        startFlag: 'СТАРТ',
+        finishFlag: 'ФИНИШ',
+        clickHint: 'Задачи «На карте» синхронизированы с таблицей задач. Нажмите на любую ветку или флаг для увеличения.',
+        addTaskToStage: '+ Задача сюда',
+        directorTitle: 'Пульт руководителя: контроль и решения',
+        kpiProgress: 'Общий прогресс',
+        kpiToday: 'Задач на сегодня',
+        kpiActiveTimers: 'Активные таймеры',
+        kpiMilestones: 'Вехи достигнуты',
+        decisionsTitle: 'Ключевые решения и риски',
+        addDecision: 'Записать решение',
+        noDecisions: 'Решений пока нет. Фиксируйте здесь главные договорённости команды.',
+        workloadTitle: 'Нагрузка по участникам',
+        folderWizardTitle: 'Новая папка проекта',
+        folderNameLabel: 'Название проекта / папки',
+        folderThemeAsk: 'Какую тему вы хотите дать данному проекту?',
+        folderThemePlaceholder: 'Например: СССР город до нашей эры, Апокалипсис в шкафах, Птицы в хорроре...',
+        livePreviewLabel: 'Арт-анализ и предпросмотр стиля:',
+        createBtn: 'Создать и открыть',
+        cancelBtn: 'Отмена',
+        saveBtn: 'Сохранить',
+        closeBtn: 'Закрыть',
+        themeModalTitle: 'Арт-студия темы и спецэффектов',
+        themePromptLabel: 'Опишите тему — движок проанализирует эпоху, жанр и образы',
+        applyThemeBtn: 'Сгенерировать дизайн',
+        presetsLabel: 'Попробуйте темы:',
+        manualTuneLabel: 'Ручная донастройка (необязательно):',
+        accentLabel: 'Акцент',
+        particlesLabel: 'Частицы FX',
+        backdropLabel: 'Фон-панорама',
+        filterLabel: 'Фильтр',
+        memberModalTitleAdd: 'Новый участник команды',
+        memberModalTitleEdit: 'Редактировать участника',
+        fullNameLabel: 'Фамилия и Имя',
+        orderLabel: 'Номер / Очерёдность',
+        rolesLabel: 'Роли (можно выбрать несколько или добавить свою)',
+        customRolePlaceholder: 'Своя роль + Enter',
+        levelLabel: 'Профессиональность / Уровень',
+        expYearsLabel: 'Опыт работы (лет, навыки, специализация)',
+        phoneLabel: 'Телефон (для экстренных случаев)',
+        photoLabel: 'Фотография участника',
+        uploadPhoto: 'Загрузить фото',
+        removePhoto: 'Убрать фото',
+        taskModalTitleAdd: 'Новая задача / пункт расписания',
+        taskModalTitleEdit: 'Редактировать задачу',
+        taskTitleLabel: 'Название задачи',
+        taskDescLabel: 'Подробное описание (открывается при клике на карте)',
+        taskTypeLabel: 'Тип задачи',
+        taskAssigneeLabel: 'Исполнитель',
+        taskStatusLabel: 'Статус',
+        taskDurationLabel: 'Таймер (минут)',
+        taskTimeSlotLabel: 'Время в расписании (например 10:00 - 11:30)',
+        taskMilestoneLabel: 'Этап (веха) на дорожной карте',
+        taskShowRoadmapLabel: 'Показывать на дорожной карте (Линии прогресса)',
+        taskInTodayLabel: 'Включить в план на сегодня',
+        milestoneModalTitleAdd: 'Новая веха (флаг) на дорожной карте',
+        milestoneModalTitleEdit: 'Редактировать веху',
+        milestoneTitleLabel: 'Название этапа (например: Блокаут готов)',
+        milestoneDescLabel: 'Что должно быть готово к этому флагу',
+        milestoneDateLabel: 'Целевая дата',
+        milestoneDoneLabel: 'Этап достигнут',
+        shareModalTitle: 'Надёжное сохранение, Авто-файл и Доступ',
+        shareIntro: 'Сайт сохраняет все папки в двойном хранилище браузера (IndexedDB + localStorage). Если вы открываете сайт через Google Sites, встроенная рамка может очищать кэш — для 100% вечного хранения привяжите локальный файл-сейв на ПК или загрузите HTML на бесплатный хостинг (Netlify Drop / GitHub Pages).',
+        linkDiskBtn: 'Привязать авто-файл на ПК (.json)',
+        copyLinkBtn: 'Скопировать ссылку-снимок',
+        exportJsonBtn: 'Скачать JSON-бэкап',
+        importJsonBtn: 'Загрузить JSON-бэкап',
+        pinSectionTitle: 'Защита удаления (Режим Главного)',
+        pinDesc: 'Задайте PIN-код, чтобы участники не могли удалять папки, людей, задачи и вехи.',
+        pinPlaceholder: 'PIN (например 1234)',
+        setPinBtn: 'Сохранить PIN',
+        switchToMember: 'Перейти в режим Участника (без удаления)',
+        switchToDirector: 'Войти в режим Главного',
+        enterPinPrompt: 'Введите PIN-код Главного:',
+        wrongPin: 'Неверный PIN-код',
+        deleteLockedToast: 'Удаление доступно только в режиме Главного',
+        confirmDeleteTitle: 'Подтвердите удаление',
+        confirmDeleteBtn: 'Да, удалить',
+        noTasksYet: 'В этом разделе задач пока нет.',
+        todayEmpty: 'На сегодня пока нет задач. Отметьте «Включить в план на сегодня» в задаче или нажмите «+ Отдых 30 мин».',
+        decisionTitleLabel: 'Тема решения',
+        decisionChoiceLabel: 'Принятый вариант и обоснование',
+        decisionStatusLabel: 'Статус',
+        decApproved: 'Утверждено',
+        decReview: 'На обсуждении',
+        decRisk: 'Риск / Блокер',
+        toastSaved: 'Сохранено',
+        toastThemeApplied: 'Арт-дизайн создан для темы:',
+        toastLinkCopied: 'Ссылка-снимок скопирована',
+        toastLinkTooLarge: 'В проекте есть крупные фото — используйте JSON-бэкап',
+        toastImported: 'Бэкап успешно загружен',
+        toastDiskLinked: 'Файл-сейв привязан! Теперь все изменения пишутся прямо на диск.',
+        toastDiskUnsupported: 'Ваш браузер не поддерживает прямую запись файла — используйте Скачать/Загрузить JSON.',
+        toastTimerDone: 'Время задачи вышло:',
+        assignQuick: 'Исполнитель:',
+        noMilestone: 'Без привязки к вехе',
+        guideTitle: 'Краткая инструкция по Studio Command Hub'
+      },
+      en: {
+        hubTitle: 'Studio Command Hub',
+        hubSubtitle: 'Universal multi-project folders for any team and workflow',
+        allFoldersBtn: 'All Folders',
+        saved: 'Saved (DB)',
+        savedDisk: 'Synced to Disk',
+        themeBtn: 'Theme & FX',
+        shareBtn: 'Save / Share',
+        directorMode: 'Director',
+        memberMode: 'Member',
+        homeHeading: 'My Project Folders',
+        homeDesc: 'Each folder is its own themed workspace with team roster, daily tasks & timers, interactive roadmap, and custom atmospheric art.',
+        createFolderCardTitle: 'Create New Project Folder',
+        createFolderCardSub: 'Click «+», type any theme (e.g. «Ancient Soviet City BC») — palette, scenic backdrop, flags & FX adapt automatically',
+        openFolderBtn: 'Open Folder',
+        membersShort: 'members',
+        tasksShort: 'tasks',
+        milestonesShort: 'flags',
+        tabTeam: 'Team',
+        tabTasks: 'Tasks & Day',
+        tabRoadmap: 'Roadmap',
+        tabDirector: 'Director Hub',
+        searchMemberPlaceholder: 'Search by name, role, experience, or phone...',
+        addMember: 'Add Member',
+        quickAddMemberHint: 'Unlimited team members',
+        orderCol: '#',
+        photoCol: 'Photo',
+        nameCol: 'Full Name',
+        rolesCol: 'Roles',
+        skillCol: 'Experience / Level',
+        phoneCol: 'Emergency Phone',
+        actionsCol: 'Actions',
+        noMembers: 'No members yet. Click «Add Member».',
+        edit: 'Edit',
+        del: 'Delete',
+        allRoles: 'All roles',
+        allLevels: 'All levels',
+        addTask: 'New Task',
+        addBreak: '+ 30m Break',
+        viewToday: 'Today\'s Plan',
+        viewAssign: 'By Member',
+        viewByMilestone: 'By Roadmap Flag',
+        membersStripTitle: 'Members (click to filter or drag a task onto a member)',
+        allTasksFilter: 'All Tasks',
+        teamTasksFilter: 'Team Tasks',
+        restTasksFilter: 'Rest / Breaks',
+        unassigned: 'Unassigned',
+        typePersonal: 'Personal',
+        typeTeam: 'Team',
+        typeRest: 'Rest / Break',
+        statusTodo: 'To Do',
+        statusProgress: 'In Progress',
+        statusDone: 'Done',
+        onRoadmap: 'On Map',
+        inToday: 'Today',
+        timerStart: 'Start',
+        timerPause: 'Pause',
+        timerReset: 'Reset',
+        minUnit: 'min',
+        roadmapTitle: 'Interactive Roadmap / Progress Line',
+        addMilestone: 'Add Flag / Milestone',
+        addTaskOnMap: '+ Task on Map',
+        zoomLabel: 'Zoom',
+        startFlag: 'START',
+        finishFlag: 'FINISH',
+        clickHint: 'Tasks marked «On Map» stay synced with Tasks & Day. Click any chip or flag to zoom in.',
+        addTaskToStage: '+ Task here',
+        directorTitle: 'Director Hub: Control & Decisions',
+        kpiProgress: 'Overall Progress',
+        kpiToday: 'Today\'s Tasks',
+        kpiActiveTimers: 'Active Timers',
+        kpiMilestones: 'Milestones Hit',
+        decisionsTitle: 'Key Decisions & Risks',
+        addDecision: 'Log Decision',
+        noDecisions: 'No decisions logged yet.',
+        workloadTitle: 'Workload by Member',
+        folderWizardTitle: 'New Project Folder',
+        folderNameLabel: 'Project / Folder Name',
+        folderThemeAsk: 'What theme would you like for this project?',
+        folderThemePlaceholder: 'e.g. Ancient Soviet City BC, Wardrobe Apocalypse, Birds Horror...',
+        livePreviewLabel: 'Art analysis & live preview:',
+        createBtn: 'Create & Open',
+        cancelBtn: 'Cancel',
+        saveBtn: 'Save',
+        closeBtn: 'Close',
+        themeModalTitle: 'Art Studio & Visual FX',
+        themePromptLabel: 'Describe your project theme — analyzes era, genre & visual motifs',
+        applyThemeBtn: 'Generate Design',
+        presetsLabel: 'Try themes:',
+        manualTuneLabel: 'Manual fine-tuning (optional):',
+        accentLabel: 'Accent',
+        particlesLabel: 'FX Particles',
+        backdropLabel: 'Backdrop',
+        filterLabel: 'Filter',
+        memberModalTitleAdd: 'New Team Member',
+        memberModalTitleEdit: 'Edit Team Member',
+        fullNameLabel: 'Full Name',
+        orderLabel: 'Order #',
+        rolesLabel: 'Roles (assign multiple or add custom)',
+        customRolePlaceholder: 'Custom role + Enter',
+        levelLabel: 'Seniority / Skill Level',
+        expYearsLabel: 'Experience (years, skills, notes)',
+        phoneLabel: 'Emergency Phone',
+        photoLabel: 'Member Photo',
+        uploadPhoto: 'Upload Photo',
+        removePhoto: 'Remove Photo',
+        taskModalTitleAdd: 'New Task / Schedule Block',
+        taskModalTitleEdit: 'Edit Task',
+        taskTitleLabel: 'Task Title',
+        taskDescLabel: 'Detailed Description (shown when zoomed on Roadmap)',
+        taskTypeLabel: 'Task Type',
+        taskAssigneeLabel: 'Assignee',
+        taskStatusLabel: 'Status',
+        taskDurationLabel: 'Timer (minutes)',
+        taskTimeSlotLabel: 'Schedule Slot (e.g. 10:00 - 11:30)',
+        taskMilestoneLabel: 'Linked Roadmap Milestone',
+        taskShowRoadmapLabel: 'Show on Roadmap (Progress Line)',
+        taskInTodayLabel: 'Include in Today\'s Plan',
+        milestoneModalTitleAdd: 'New Flag (Milestone) on Roadmap',
+        milestoneModalTitleEdit: 'Edit Milestone',
+        milestoneTitleLabel: 'Stage Name (e.g. Blockout Ready)',
+        milestoneDescLabel: 'Completion criteria / goal',
+        milestoneDateLabel: 'Target Date',
+        milestoneDoneLabel: 'Milestone Completed',
+        shareModalTitle: 'Reliable Storage, Auto-File & Team Sharing',
+        shareIntro: 'Your folders auto-save to dual browser storage (IndexedDB + localStorage). If embedded in Google Sites, iframes may clear cache on reload — link a local auto-save file on PC or host this HTML on Netlify Drop / GitHub Pages for permanent persistence.',
+        linkDiskBtn: 'Link Local Auto-Save File (.json)',
+        copyLinkBtn: 'Copy Snapshot Link',
+        exportJsonBtn: 'Download JSON Backup',
+        importJsonBtn: 'Import JSON Backup',
+        pinSectionTitle: 'Delete Protection (Director Lock)',
+        pinDesc: 'Set a PIN so members cannot delete folders, people, tasks, or milestones.',
+        pinPlaceholder: 'PIN (e.g. 1234)',
+        setPinBtn: 'Save PIN',
+        switchToMember: 'Switch to Member Mode (No Delete)',
+        switchToDirector: 'Unlock Director Mode',
+        enterPinPrompt: 'Enter Director PIN:',
+        wrongPin: 'Incorrect PIN',
+        deleteLockedToast: 'Deleting is restricted to Director Mode',
+        confirmDeleteTitle: 'Confirm Deletion',
+        confirmDeleteBtn: 'Yes, Delete',
+        noTasksYet: 'No tasks here yet.',
+        todayEmpty: 'No tasks for today yet.',
+        decisionTitleLabel: 'Decision Topic',
+        decisionChoiceLabel: 'Chosen Option & Rationale',
+        decisionStatusLabel: 'Status',
+        decApproved: 'Approved',
+        decReview: 'In Review',
+        decRisk: 'Risk / Blocker',
+        toastSaved: 'Saved',
+        toastThemeApplied: 'Art design crafted for:',
+        toastLinkCopied: 'Snapshot link copied',
+        toastLinkTooLarge: 'Project contains large photos — use JSON Backup',
+        toastImported: 'Backup imported successfully',
+        toastDiskLinked: 'Local save file linked! Changes now write directly to disk.',
+        toastDiskUnsupported: 'Your browser does not support direct file sync — use JSON Backup.',
+        toastTimerDone: 'Task timer finished:',
+        assignQuick: 'Assignee:',
+        noMilestone: 'No milestone linked',
+        guideTitle: 'Studio Command Hub Guide'
+      }
+    };
+
+    const PRESET_ROLES = [
+      'Артовик', 'Программист', 'Художник', '3D-моделлер', 'Геймдизайнер',
+      'Звукорежиссёр', 'Аниматор', 'Кинолог', 'Нарративщик', 'Тестировщик', 'Продюсер'
+    ];
+
+    const SKILL_LEVELS = [
+      { id: 'intern', ru: 'Стажёр (Intern)', en: 'Intern', stars: 1, color: '#94a3b8' },
+      { id: 'junior', ru: 'Джуниор (Junior)', en: 'Junior', stars: 2, color: '#38bdf8' },
+      { id: 'middle', ru: 'Мидл (Middle)', en: 'Middle', stars: 3, color: '#34d399' },
+      { id: 'senior', ru: 'Сеньор (Senior)', en: 'Senior', stars: 4, color: '#f59e0b' },
+      { id: 'lead',   ru: 'Лид / Эксперт (Lead)', en: 'Lead / Expert', stars: 5, color: '#f43f5e' }
+    ];
+
+    /* =========================================================================
+       2. ART DIRECTOR ENGINE v3.0 (COMBINATORIAL ERA + GENRE + MOTIF + SCENIC SVG)
+    ========================================================================= */
+    const THEME_PRESETS = [
+      { ru: 'СССР город до нашей эры', en: 'Ancient Soviet City BC' },
+      { ru: 'Апокалипсис в шкафах', en: 'Wardrobe Apocalypse' },
+      { ru: 'Птицы в хоррор-атмосфере', en: 'Birds in Horror Atmosphere' },
+      { ru: 'Киберпанк мегаполис дождь', en: 'Cyberpunk Rain City' },
+      { ru: 'Самураи и сакура', en: 'Samurai & Sakura' },
+      { ru: 'Тёмное фэнтези замок', en: 'Dark Fantasy Castle' },
+      { ru: 'Глубокий космос Sci-Fi', en: 'Deep Space Sci-Fi' },
+      { ru: 'Подводный город', en: 'Underwater City' }
+    ];
+
+    const HUB_NEUTRAL_THEME = {
+      prompt: 'Studio Command Hub',
+      moodLabelRu: 'Универсальная студия',
+      moodLabelEn: 'Universal Studio',
+      palette: {
+        bgMain: '#0c0e14', bgPanel: '#131620', bgCard: '#1a1e2b', bgCardHover: '#222838',
+        border: '#2b3347', accent: '#6366f1', accentSoft: 'rgba(99, 102, 241, 0.16)',
+        accent2: '#06b6d4', textMain: '#f1f5f9', textMuted: '#94a3b8', glow: 'rgba(99, 102, 241, 0.35)'
+      },
+      particleType: 'stars',
+      overlay: 'grid',
+      flagIcon: 'flag',
+      scenicType: 'studio_grid',
+      fontDisplay: "'Inter', system-ui, sans-serif"
+    };
+
+    function hashString(str) {
+      let h = 2166136261;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+      }
+      return Math.abs(h);
+    }
+
+    function analyzeAndGenerateTheme(promptText) {
+      const raw = (promptText || '').trim();
+      const q = raw.toLowerCase();
+
+      const hasSoviet = /ссср|совет|панел|хрущев|завод|гост|комсомол|брежн|сталин|soviet|ussr|brutal|communi/.test(q);
+      const hasAncient = /до нашей эры|древн|антич|камен|егип|рим|пирамид|мамонт|пещер|первобыт|вавилон|мегалит|ancient|bc\b|bce\b|stone age|egypt|rome|prehistoric/.test(q);
+      const hasApoc = /апокалип|постапок|руин|выжж|радиац|бункер|катастроф|зомб|apocal|wasteland|fallout|ruin|zombie/.test(q);
+      const hasWardrobe = /шкаф|двер|гардероб|комнат|отел|wardrobe|closet|cabinet|door/.test(q);
+      const hasBirds = /птиц|ворон|голуб|орнитоз|пер|крыл|bird|crow|pigeon|feather|wing/.test(q);
+      const hasHorror = /хоррор|ужас|мрак|кров|vhs|страх|кошмар|horror|creepy|nightmare|blood|scary/.test(q);
+      const hasCyber = /кибер|неон|хакер|синт|будущ|cyber|neon|synth|matrix/.test(q);
+      const hasCity = /город|мегаполис|улиц|здан|дом|башн|city|urban|town|tower|metropolis/.test(q);
+      const hasSakura = /сакур|япон|самура|токио|аниме|ниндз|sakura|japan|samurai|tokyo|anime/.test(q);
+      const hasFantasy = /фэнтез|маг|дракон|средневек|рыцар|замок|меч|fantasy|medieval|magic|dragon|castle|rpg/.test(q);
+      const hasSpace = /космос|планет|звезд|галакт|орбит|sci-fi|scifi|space|star|alien|orbit/.test(q);
+      const hasOcean = /океан|подвод|мор|вод|глубин|атлант|ocean|sea|water|underwater/.test(q);
+      const hasNature = /лес|природ|выжив|сад|животн|собак|кинолог|forest|nature|survival|cozy/.test(q);
+      const hasSnow = /снег|зим|лёд|лед|мороз|арктик|snow|winter|ice|frost/.test(q);
+      const hasSteampunk = /стимпанк|пар|шестер|механизм|бронз|steampunk|clockwork|gear|brass/.test(q);
+      const hasNoir = /нуар|детектив|дожд|тень|noir|detective|rain/.test(q);
+
+      let palette, overlay, particleType, flagIcon, scenicType, moodLabelRu, moodLabelEn;
+      let fontDisplay = "'Inter', system-ui, sans-serif";
+
+      // COMBO 1: Soviet + Ancient ("СССР город до нашей эры"!)
+      if (hasSoviet && hasAncient) {
+        palette = {
+          bgMain: '#14110e', bgPanel: '#1e1914', bgCard: '#28211a', bgCardHover: '#342b21',
+          border: '#524131', accent: '#c83228', accentSoft: 'rgba(200, 50, 40, 0.22)',
+          accent2: '#d49b38', textMain: '#f5ece0', textMuted: '#b8a58e', glow: 'rgba(200, 50, 40, 0.45)'
+        };
+        overlay = 'grain';
+        particleType = 'embers';
+        flagIcon = 'soviet_stone';
+        scenicType = 'soviet_ancient_city';
+        fontDisplay = "Georgia, 'Times New Roman', serif";
+        moodLabelRu = 'Древний СССР · Каменный брутализм и охра';
+        moodLabelEn = 'Ancient Soviet Megalith · Stone & Ochre';
+      } else if (hasSoviet) {
+        palette = {
+          bgMain: '#131517', bgPanel: '#1b1e21', bgCard: '#23272b', bgCardHover: '#2d3238',
+          border: '#424850', accent: '#cc2929', accentSoft: 'rgba(204, 41, 41, 0.22)',
+          accent2: '#d99b26', textMain: '#f0ede6', textMuted: '#9ea3a8', glow: 'rgba(204, 41, 41, 0.42)'
+        };
+        overlay = 'vhs';
+        particleType = 'smoke';
+        flagIcon = 'soviet_star';
+        scenicType = 'soviet_city';
+        fontDisplay = "'Courier New', ui-monospace, monospace";
+        moodLabelRu = 'Советский брутализм · Бетон и алый';
+        moodLabelEn = 'Soviet Brutalism · Concrete & Crimson';
+      } else if (hasAncient) {
+        palette = {
+          bgMain: '#16110b', bgPanel: '#211910', bgCard: '#2c2116', bgCardHover: '#3a2b1c',
+          border: '#5c442c', accent: '#d97706', accentSoft: 'rgba(217, 119, 6, 0.22)',
+          accent2: '#b45309', textMain: '#fbf3e4', textMuted: '#c2a889', glow: 'rgba(217, 119, 6, 0.45)'
+        };
+        overlay = 'grain';
+        particleType = 'dust';
+        flagIcon = 'obelisk';
+        scenicType = 'ancient_ruins';
+        fontDisplay = "Georgia, 'Times New Roman', serif";
+        moodLabelRu = 'Древняя эпоха · Песчаник, бронза и факелы';
+        moodLabelEn = 'Ancient Era · Sandstone & Bronze';
+      } else if (hasWardrobe && (hasApoc || hasHorror)) {
+        palette = {
+          bgMain: '#120d0a', bgPanel: '#1c140f', bgCard: '#261b14', bgCardHover: '#33241a',
+          border: '#523826', accent: '#ea580c', accentSoft: 'rgba(234, 88, 12, 0.22)',
+          accent2: '#eab308', textMain: '#fbf3eb', textMuted: '#bd9f88', glow: 'rgba(234, 88, 12, 0.46)'
+        };
+        overlay = 'grain';
+        particleType = 'embers';
+        flagIcon = 'wardrobe';
+        scenicType = 'wardrobe_apoc';
+        moodLabelRu = 'Апокалипсис в шкафах · Пепел и разломы';
+        moodLabelEn = 'Wardrobe Apocalypse · Ash & Rifts';
+      } else if (hasBirds && hasHorror) {
+        palette = {
+          bgMain: '#0a0a0d', bgPanel: '#131217', bgCard: '#1b1821', bgCardHover: '#26212e',
+          border: '#3b2c3d', accent: '#dc2626', accentSoft: 'rgba(220, 38, 38, 0.22)',
+          accent2: '#991b1b', textMain: '#f2efea', textMuted: '#9e95a6', glow: 'rgba(220, 38, 38, 0.48)'
+        };
+        overlay = 'vhs';
+        particleType = 'feathers';
+        flagIcon = 'bird';
+        scenicType = 'birds_horror';
+        moodLabelRu = 'Птичий хоррор · Плёнка VHS и перья';
+        moodLabelEn = 'Avian Horror · VHS & Dark Feathers';
+      } else if (hasSakura) {
+        palette = {
+          bgMain: '#120c11', bgPanel: '#1c121a', bgCard: '#261923', bgCardHover: '#33212f',
+          border: '#54334a', accent: '#f43f5e', accentSoft: 'rgba(244, 63, 94, 0.22)',
+          accent2: '#fda4af', textMain: '#fff1f2', textMuted: '#c7a1b3', glow: 'rgba(244, 63, 94, 0.45)'
+        };
+        overlay = 'grain';
+        particleType = 'sakura';
+        flagIcon = 'torii';
+        scenicType = 'torii_sakura';
+        fontDisplay = "Georgia, serif";
+        moodLabelRu = 'Япония / Сакура · Тории и лепестки';
+        moodLabelEn = 'Japan / Sakura · Torii & Petals';
+      } else if (hasApoc) {
+        palette = {
+          bgMain: '#120e0b', bgPanel: '#1c1510', bgCard: '#261d16', bgCardHover: '#33261d',
+          border: '#523b29', accent: '#ea580c', accentSoft: 'rgba(234, 88, 12, 0.22)',
+          accent2: '#facc15', textMain: '#faf2e8', textMuted: '#baa08b', glow: 'rgba(234, 88, 12, 0.46)'
+        };
+        overlay = 'grain';
+        particleType = 'embers';
+        flagIcon = 'hazard';
+        scenicType = 'ruined_city';
+        moodLabelRu = 'Постапокалипсис · Руины и пепел';
+        moodLabelEn = 'Post-Apocalypse · Ruins & Embers';
+      } else if (hasHorror) {
+        palette = {
+          bgMain: '#0a090c', bgPanel: '#131117', bgCard: '#1b1821', bgCardHover: '#26202e',
+          border: '#3b2b3d', accent: '#dc2626', accentSoft: 'rgba(220, 38, 38, 0.22)',
+          accent2: '#7f1d1d', textMain: '#f2efea', textMuted: '#9e96a6', glow: 'rgba(220, 38, 38, 0.46)'
+        };
+        overlay = 'vhs';
+        particleType = 'dust';
+        flagIcon = 'hazard';
+        scenicType = 'birds_horror';
+        moodLabelRu = 'Хоррор · Аналоговый мрак VHS';
+        moodLabelEn = 'Horror · Analog VHS Dread';
+      } else if (hasCyber) {
+        palette = {
+          bgMain: '#070914', bgPanel: '#0e1326', bgCard: '#151c36', bgCardHover: '#1d274a',
+          border: '#2b396b', accent: '#06b6d4', accentSoft: 'rgba(6, 182, 212, 0.22)',
+          accent2: '#ec4899', textMain: '#eef6ff', textMuted: '#8da4d0', glow: 'rgba(6, 182, 212, 0.5)'
+        };
+        overlay = 'grid';
+        particleType = hasNoir ? 'rain' : 'sparks';
+        flagIcon = 'cyber';
+        scenicType = 'cyber_city';
+        fontDisplay = "'Courier New', ui-monospace, monospace";
+        moodLabelRu = 'Киберпанк · Неоновый мегаполис';
+        moodLabelEn = 'Cyberpunk · Neon Megacity';
+      } else if (hasFantasy) {
+        palette = {
+          bgMain: '#120e0c', bgPanel: '#1c1511', bgCard: '#261d17', bgCardHover: '#33261d',
+          border: '#4f3b2c', accent: '#d97706', accentSoft: 'rgba(217, 119, 6, 0.22)',
+          accent2: '#a855f7', textMain: '#fcf4e8', textMuted: '#bda68f', glow: 'rgba(217, 119, 6, 0.46)'
+        };
+        overlay = 'grain';
+        particleType = 'embers';
+        flagIcon = 'crest';
+        scenicType = 'castle_fantasy';
+        fontDisplay = "Georgia, serif";
+        moodLabelRu = 'Тёмное Фэнтези · Цитадель и магия';
+        moodLabelEn = 'Dark Fantasy · Citadel & Magic';
+      } else if (hasSpace) {
+        palette = {
+          bgMain: '#050814', bgPanel: '#0a1124', bgCard: '#111c36', bgCardHover: '#19294d',
+          border: '#263c6b', accent: '#6366f1', accentSoft: 'rgba(99, 102, 241, 0.22)',
+          accent2: '#38bdf8', textMain: '#eff6ff', textMuted: '#94a3b8', glow: 'rgba(99, 102, 241, 0.48)'
+        };
+        overlay = 'grid';
+        particleType = 'stars';
+        flagIcon = 'radar';
+        scenicType = 'space_orbit';
+        moodLabelRu = 'Космос · Орбита и звёздный путь';
+        moodLabelEn = 'Deep Space · Orbital Starfield';
+      } else if (hasOcean) {
+        palette = {
+          bgMain: '#040f17', bgPanel: '#091c2b', bgCard: '#0f283d', bgCardHover: '#163652',
+          border: '#1f4a6e', accent: '#0ea5e9', accentSoft: 'rgba(14, 165, 233, 0.22)',
+          accent2: '#2dd4bf', textMain: '#f0f9ff', textMuted: '#88b4d1', glow: 'rgba(14, 165, 233, 0.46)'
+        };
+        overlay = 'grain';
+        particleType = 'bubbles';
+        flagIcon = 'wave';
+        scenicType = 'ocean_depths';
+        moodLabelRu = 'Океан · Глубины и биолюминесценция';
+        moodLabelEn = 'Deep Ocean · Bioluminescence';
+      } else if (hasSteampunk) {
+        palette = {
+          bgMain: '#14100c', bgPanel: '#1f1812', bgCard: '#2b2118', bgCardHover: '#382b1f',
+          border: '#5c4530', accent: '#d97706', accentSoft: 'rgba(217, 119, 6, 0.22)',
+          accent2: '#14b8a6', textMain: '#fbf4ea', textMuted: '#baa48c', glow: 'rgba(217, 119, 6, 0.44)'
+        };
+        overlay = 'grain';
+        particleType = 'smoke';
+        flagIcon = 'gear';
+        scenicType = 'steampunk_gears';
+        fontDisplay = "Georgia, serif";
+        moodLabelRu = 'Стимпанк · Латунь, пар и шестерни';
+        moodLabelEn = 'Steampunk · Brass & Steam';
+      } else if (hasSnow) {
+        palette = {
+          bgMain: '#071019', bgPanel: '#0e1c2b', bgCard: '#15283d', bgCardHover: '#1c3552',
+          border: '#2d4e73', accent: '#38bdf8', accentSoft: 'rgba(56, 189, 248, 0.22)',
+          accent2: '#e0f2fe', textMain: '#f8fafc', textMuted: '#94b5d1', glow: 'rgba(56, 189, 248, 0.45)'
+        };
+        overlay = 'grain';
+        particleType = 'snow';
+        flagIcon = 'mountain';
+        scenicType = 'winter_peaks';
+        moodLabelRu = 'Арктика · Снежные пики и метель';
+        moodLabelEn = 'Arctic · Frost Peaks & Snowfall';
+      } else if (hasNature) {
+        palette = {
+          bgMain: '#08120c', bgPanel: '#0f1f16', bgCard: '#162c20', bgCardHover: '#1f3b2b',
+          border: '#2d523d', accent: '#10b981', accentSoft: 'rgba(16, 185, 129, 0.22)',
+          accent2: '#eab308', textMain: '#ecfdf5', textMuted: '#90b8a4', glow: 'rgba(16, 185, 129, 0.44)'
+        };
+        overlay = 'grain';
+        particleType = 'leaves';
+        flagIcon = 'leaf';
+        scenicType = 'forest_ridge';
+        moodLabelRu = 'Природа · Лесной массив и светлячки';
+        moodLabelEn = 'Nature · Forest & Fireflies';
+      } else if (hasNoir || hasCity) {
+        palette = {
+          bgMain: '#0d0e11', bgPanel: '#16181d', bgCard: '#1f2229', bgCardHover: '#2a2e38',
+          border: '#3b414f', accent: '#f59e0b', accentSoft: 'rgba(245, 158, 11, 0.2)',
+          accent2: '#94a3b8', textMain: '#f4f4f5', textMuted: '#9ca3af', glow: 'rgba(245, 158, 11, 0.42)'
+        };
+        overlay = 'grain';
+        particleType = 'rain';
+        flagIcon = 'city';
+        scenicType = 'soviet_city';
+        moodLabelRu = 'Нуар-город · Дождь и свет фонарей';
+        moodLabelEn = 'Noir City · Rain & Streetlights';
+      } else {
+        const h = hashString(q || 'studio') % 360;
+        const h2 = (h + 45) % 360;
+        palette = {
+          bgMain: `hsl(${h}, 26%, 7%)`, bgPanel: `hsl(${h}, 24%, 11%)`,
+          bgCard: `hsl(${h}, 22%, 15%)`, bgCardHover: `hsl(${h}, 22%, 20%)`,
+          border: `hsl(${h}, 24%, 28%)`, accent: `hsl(${h}, 76%, 56%)`,
+          accentSoft: `hsla(${h}, 76%, 56%, 0.2)`, accent2: `hsl(${h2}, 74%, 54%)`,
+          textMain: '#f8fafc', textMuted: '#94a3b8', glow: `hsla(${h}, 76%, 56%, 0.44)`
+        };
+        overlay = 'grain';
+        particleType = 'dust';
+        flagIcon = 'flag';
+        scenicType = 'abstract_waves';
+        moodLabelRu = 'Уникальная авторская палитра';
+        moodLabelEn = 'Unique Custom Palette';
+      }
+
+      // Secondary motif override if mentioned alongside another mood
+      if (hasWardrobe && scenicType !== 'wardrobe_apoc') { flagIcon = 'wardrobe'; scenicType = 'wardrobe_apoc'; }
+      if (hasBirds && flagIcon !== 'bird') { flagIcon = 'bird'; particleType = 'feathers'; }
+
+      return {
+        prompt: raw || 'Новый проект',
+        moodLabelRu,
+        moodLabelEn,
+        palette,
+        particleType,
+        overlay,
+        flagIcon,
+        scenicType,
+        fontDisplay
+      };
+    }
+
+    function getThemeFlagSVG(iconType, color, size = 22) {
+      const icons = {
+        soviet_stone: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21h12l-2-14H8L6 21z"/><polygon points="12 3 13.5 6.2 17 6.6 14.4 9 15.1 12.4 12 10.7 8.9 12.4 9.6 9 7 6.6 10.5 6.2 12 3" fill="${color}"/><path d="M9 17h6"/></svg>`,
+        soviet_star: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.9"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.7 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2" fill="${color}" fill-opacity="0.25"/></svg>`,
+        obelisk: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.9"><path d="M12 2l3 4 1 15H8L9 6l3-4z"/><path d="M6 21h12M10 11h4M10 15h4"/></svg>`,
+        wardrobe: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.9"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><path d="M9.5 11v2M14.5 11v2M4 17l3-2 2 1.5L12 14"/></svg>`,
+        hazard: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+        bird: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.9"><path d="M16 7h.01M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20m18-13 2 .5-2 .5M10 18v3M14 17.75V21"/></svg>`,
+        torii: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M3 6c5 1.5 13 1.5 18 0M5 10h14M7 10v11M17 10v11M12 7v3"/></svg>`,
+        cyber: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><circle cx="12" cy="12" r="3" fill="${color}"/></svg>`,
+        crest: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v8M8 12h8"/></svg>`,
+        radar: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12l6-6"/></svg>`,
+        wave: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0M2 18c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><circle cx="12" cy="6" r="2"/></svg>`,
+        leaf: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>`,
+        gear: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>`,
+        mountain: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M3 20L9 8l4 7 3-4 5 9H3z"/></svg>`,
+        city: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M3 21h18M5 21V7l5-3v17M10 21V11h6v10M16 21V5l4 2v14"/></svg>`,
+        flag: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`
+      };
+      return icons[iconType] || icons.flag;
+    }
+
+    function getScenicBackdropSVG(theme) {
+      const c1 = theme.palette.accent;
+      const c2 = theme.palette.accent2;
+      const bg = theme.palette.bgPanel;
+      const t = theme.scenicType;
+
+      if (t === 'soviet_ancient_city') {
+        return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+          <defs>
+            <radialGradient id="redSun" cx="50%" cy="62%" r="36%">
+              <stop offset="0%" stop-color="${c1}" stop-opacity="0.42"/>
+              <stop offset="100%" stop-color="${c1}" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="1440" height="800" fill="url(#redSun)"/>
+          <!-- Giant crimson stone sun -->
+          <circle cx="720" cy="490" r="170" fill="${c1}" opacity="0.22"/>
+          <!-- Ancient stone pyramids + Brutalist monolithic panelkas -->
+          <polygon points="80,800 280,450 480,800" fill="${bg}" stroke="${c2}" stroke-opacity="0.35" stroke-width="2"/>
+          <polygon points="1040,800 1230,490 1420,800" fill="${bg}" stroke="${c2}" stroke-opacity="0.35" stroke-width="2"/>
+          <!-- Carved Stone Panel Blocks -->
+          <rect x="330" y="510" width="160" height="290" fill="${bg}" stroke="${c1}" stroke-opacity="0.4" stroke-width="2"/>
+          <g fill="${c2}" opacity="0.28">
+            <rect x="355" y="540" width="22" height="28"/><rect x="395" y="540" width="22" height="28"/><rect x="435" y="540" width="22" height="28"/>
+            <rect x="355" y="590" width="22" height="28"/><rect x="395" y="590" width="22" height="28"/><rect x="435" y="590" width="22" height="28"/>
+          </g>
+          <!-- Central Obelisk with Star -->
+          <polygon points="690,800 706,360 720,330 734,360 750,800" fill="${bg}" stroke="${c1}" stroke-width="2.5"/>
+          <polygon points="720,275 729,300 755,302 735,318 741,343 720,329 699,343 705,318 685,302 711,300" fill="${c1}" opacity="0.7"/>
+          <rect x="860" y="540" width="190" height="260" fill="${bg}" stroke="${c2}" stroke-opacity="0.4" stroke-width="2"/>
+          <g fill="${c1}" opacity="0.25">
+            <rect x="885" y="570" width="28" height="24"/><rect x="935" y="570" width="28" height="24"/><rect x="985" y="570" width="28" height="24"/>
+            <rect x="885" y="620" width="28" height="24"/><rect x="935" y="620" width="28" height="24"/><rect x="985" y="620" width="28" height="24"/>
+          </g>
+        </svg>`;
+      }
+
+      if (t === 'soviet_city') {
+        return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+          <rect x="60" y="470" width="180" height="330" fill="${bg}" stroke="${c1}" stroke-opacity="0.35" stroke-width="2"/>
+          <rect x="280" y="420" width="210" height="380" fill="${bg}" stroke="${c2}" stroke-opacity="0.3" stroke-width="2"/>
+          <rect x="560" y="500" width="240" height="300" fill="${bg}" stroke="${c1}" stroke-opacity="0.35" stroke-width="2"/>
+          <rect x="860" y="390" width="190" height="410" fill="${bg}" stroke="${c1}" stroke-opacity="0.4" stroke-width="2"/>
+          <rect x="1110" y="460" width="230" height="340" fill="${bg}" stroke="${c2}" stroke-opacity="0.3" stroke-width="2"/>
+          <!-- Factory chimneys -->
+          <rect x="505" y="340" width="24" height="460" fill="${bg}" stroke="${c1}" stroke-opacity="0.4"/>
+          <rect x="538" y="370" width="20" height="430" fill="${bg}" stroke="${c1}" stroke-opacity="0.35"/>
+          <line x1="0" y1="680" x2="1440" y2="680" stroke="${c1}" stroke-opacity="0.25" stroke-width="2"/>
+        </svg>`;
+      }
+
+      if (t === 'wardrobe_apoc') {
+        return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+          <g fill="${bg}" stroke="${c1}" stroke-width="2.5" stroke-opacity="0.45">
+            <g transform="rotate(-7 200 650)"><rect x="120" y="430" width="170" height="370"/><line x1="205" y1="430" x2="205" y2="800"/></g>
+            <g transform="rotate(5 680 650)"><rect x="590" y="390" width="190" height="410"/><line x1="685" y1="390" x2="685" y2="800"/></g>
+            <g transform="rotate(-4 1150 650)"><rect x="1060" y="440" width="180" height="360"/><line x1="1150" y1="440" x2="1150" y2="800"/></g>
+          </g>
+          <path d="M0 760 L1440 760" stroke="${c2}" stroke-width="8" stroke-dasharray="28 18" opacity="0.35"/>
+        </svg>`;
+      }
+
+      if (t === 'birds_horror') {
+        return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+          <circle cx="720" cy="360" r="210" fill="${c1}" opacity="0.16"/>
+          <!-- Giant ominous silhouette wings -->
+          <path d="M720 440 Q520 260 140 310 Q380 420 520 520 Q340 500 180 560 Q460 610 720 540 Z" fill="${bg}" stroke="${c1}" stroke-opacity="0.4" stroke-width="2"/>
+          <path d="M720 440 Q920 260 1300 310 Q1060 420 920 520 Q1100 500 1260 560 Q980 610 720 540 Z" fill="${bg}" stroke="${c1}" stroke-opacity="0.4" stroke-width="2"/>
+          <circle cx="695" cy="435" r="7" fill="${c1}" opacity="0.85"/>
+          <circle cx="745" cy="435" r="7" fill="${c1}" opacity="0.85"/>
+        </svg>`;
+      }
+
+      if (t === 'torii_sakura') {
+        return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+          <circle cx="720" cy="430" r="190" fill="${c1}" opacity="0.22"/>
+          <!-- Grand Torii Gate -->
+          <path d="M410 400 Q720 445 1030 400 L1015 435 Q720 470 425 435 Z" fill="${c1}" opacity="0.45"/>
+          <rect x="480" y="480" width="480" height="24" fill="${c1}" opacity="0.4"/>
+          <rect x="530" y="435" width="32" height="365" fill="${bg}" stroke="${c1}" stroke-width="2"/>
+          <rect x="878" y="435" width="32" height="365" fill="${bg}" stroke="${c1}" stroke-width="2"/>
+        </svg>`;
+      }
+
+      if (t === 'cyber_city') {
+        return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+          <path d="M0 800 L0 560 L120 560 L120 440 L210 440 L210 610 L320 610 L320 350 L440 350 L440 530 L580 530 L580 280 L690 280 L690 500 L850 500 L850 370 L980 370 L980 570 L1140 570 L1140 410 L1270 410 L1270 590 L1440 590 L1440 800 Z" fill="${bg}" stroke="${c1}" stroke-width="2" stroke-opacity="0.5"/>
+          <line x1="0" y1="680" x2="1440" y2="680" stroke="${c2}" stroke-width="2" opacity="0.45"/>
+          <line x1="0" y1="730" x2="1440" y2="730" stroke="${c1}" stroke-width="1.5" opacity="0.35"/>
+        </svg>`;
+      }
+
+      if (t === 'castle_fantasy') {
+        return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+          <circle cx="720" cy="340" r="150" fill="${c2}" opacity="0.16"/>
+          <path d="M0 800 L220 590 L380 650 L500 440 L540 360 L580 440 L640 440 L720 290 L800 440 L860 440 L900 360 L940 440 L1080 640 L1260 580 L1440 800 Z" fill="${bg}" stroke="${c1}" stroke-opacity="0.45" stroke-width="2"/>
+        </svg>`;
+      }
+
+      if (t === 'space_orbit') {
+        return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+          <circle cx="1080" cy="260" r="130" fill="${bg}" stroke="${c2}" stroke-opacity="0.45" stroke-width="2"/>
+          <ellipse cx="1080" cy="260" rx="260" ry="52" fill="none" stroke="${c1}" stroke-opacity="0.5" stroke-width="3" transform="rotate(-18 1080 260)"/>
+          <circle cx="240" cy="640" r="220" fill="${c1}" opacity="0.12"/>
+        </svg>`;
+      }
+
+      if (t === 'ancient_ruins') {
+        return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+          <circle cx="720" cy="460" r="180" fill="${c1}" opacity="0.22"/>
+          <polygon points="100,800 400,400 700,800" fill="${bg}" stroke="${c1}" stroke-opacity="0.4" stroke-width="2"/>
+          <polygon points="760,800 1040,460 1320,800" fill="${bg}" stroke="${c2}" stroke-opacity="0.4" stroke-width="2"/>
+          <rect x="650" y="540" width="24" height="260" fill="${bg}" stroke="${c1}" stroke-opacity="0.45"/>
+          <rect x="740" y="560" width="24" height="240" fill="${bg}" stroke="${c1}" stroke-opacity="0.45"/>
+        </svg>`;
+      }
+
+      if (t === 'forest_ridge' || t === 'winter_peaks') {
+        return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+          <path d="M0 800 L0 620 L180 480 L340 600 L560 420 L760 580 L980 430 L1200 590 L1440 470 L1440 800 Z" fill="${bg}" stroke="${c1}" stroke-opacity="0.4" stroke-width="2"/>
+          <path d="M0 800 L0 690 L260 590 L480 680 L740 560 L1020 670 L1280 580 L1440 660 L1440 800 Z" fill="${bg}" opacity="0.7" stroke="${c2}" stroke-opacity="0.35" stroke-width="2"/>
+        </svg>`;
+      }
+
+      if (t === 'ocean_depths') {
+        return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+          <path d="M0 600 Q360 520 720 600 T1440 600 L1440 800 L0 800 Z" fill="${c1}" opacity="0.16"/>
+          <path d="M0 680 Q360 620 720 680 T1440 680 L1440 800 L0 800 Z" fill="${c2}" opacity="0.18"/>
+        </svg>`;
+      }
+
+      return `<svg class="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMax slice">
+        <circle cx="1220" cy="180" r="240" fill="${c1}" opacity="0.14"/>
+        <circle cx="180" cy="700" r="260" fill="${c2}" opacity="0.12"/>
+      </svg>`;
+    }
+
+    /* =========================================================================
+       3. DUAL PERSISTENCE: INDEXEDDB + LOCALSTORAGE + OPTIONAL AUTO-FILE
+    ========================================================================= */
+    const STORAGE_KEY = 'studio_command_hub_v3';
+    const IDB_NAME = 'StudioCommandHubDB';
+    const IDB_STORE = 'workspace';
+    let linkedFileHandle = null;
+
+    function idbOpen() {
+      return new Promise((resolve, reject) => {
+        try {
+          const req = indexedDB.open(IDB_NAME, 1);
+          req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE); };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        } catch (e) { reject(e); }
+      });
+    }
+
+    async function idbLoad() {
+      try {
+        const db = await idbOpen();
+        return await new Promise((resolve) => {
+          const tx = db.transaction(IDB_STORE, 'readonly');
+          const req = tx.objectStore(IDB_STORE).get('state');
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) { return null; }
+    }
+
+    async function idbSave(data) {
+      try {
+        const db = await idbOpen();
+        await new Promise((resolve) => {
+          const tx = db.transaction(IDB_STORE, 'readwrite');
+          tx.objectStore(IDB_STORE).put(data, 'state');
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        });
+      } catch (e) {}
+    }
+
+    async function writeToLinkedDiskFile(data) {
+      if (!linkedFileHandle) return;
+      try {
+        const writable = await linkedFileHandle.createWritable();
+        await writable.write(JSON.stringify(data, null, 2));
+        await writable.close();
+      } catch (e) {}
+    }
+
+    function uid(prefix = 'id') {
+      return prefix + '_' + Math.random().toString(36).slice(2, 9);
+    }
+
+    function createDefaultState() {
+      const m1 = 'mem_demo_1', m2 = 'mem_demo_2';
+      const ms1 = 'ms_demo_1', ms2 = 'ms_demo_2', ms3 = 'ms_demo_3';
+      return {
+        lang: 'ru',
+        fxLevel: 'high',
+        muted: false,
+        roleMode: 'director',
+        directorPin: '',
+        view: 'home',
+        activeFolderId: 'folder_starter',
+        activeTab: 'team',
+        taskViewMode: 'today',
+        taskFilterMemberId: 'all',
+        roadmapZoom: 1,
+        folders: [
+          {
+            id: 'folder_starter',
+            name: 'Пример папки (СССР до нашей эры)',
+            theme: analyzeAndGenerateTheme('СССР город до нашей эры'),
+            members: [
+              {
+                id: m1, order: 1, name: 'Участник #1 (Руководитель)',
+                roles: ['Геймдизайнер', 'Артовик'], level: 'lead',
+                expText: 'Опыт 3 года, арт и координация', phone: '+996 555 000 001', photo: ''
+              },
+              {
+                id: m2, order: 2, name: 'Участник #2 (Разработчик)',
+                roles: ['Программист', 'Художник'], level: 'middle',
+                expText: 'Опыт 2 года, логика и прототипы', phone: '+996 555 000 002', photo: ''
+              }
+            ],
+            milestones: [
+              { id: ms1, title: 'Обсуждение идеи', description: 'Утвердить концепт и роли команды.', targetDate: '2026-11-24', completed: true },
+              { id: ms2, title: 'Первый прототип / Блокаут', description: 'Собрать рабочую базу и проверить механики.', targetDate: '2026-12-05', completed: false },
+              { id: ms3, title: 'Готовая версия / Релиз', description: 'Финальный тест и публикация.', targetDate: '2026-12-20', completed: false }
+            ],
+            tasks: [
+              {
+                id: uid('t'), title: 'Собрать референсы и план этапа',
+                description: 'Подготовить мудборд и распределить задачи по ролям.',
+                type: 'personal', assigneeId: m1, status: 'in_progress',
+                durationMin: 60, remainingSec: 3600, running: false,
+                timeSlot: '10:00 - 11:00', milestoneId: ms2, onRoadmap: true, isToday: true
+              },
+              {
+                id: uid('t'), title: 'Командный отдых 30 минут',
+                description: 'Перерыв для всей команды.',
+                type: 'rest', assigneeId: '', status: 'todo',
+                durationMin: 30, remainingSec: 1800, running: false,
+                timeSlot: '12:00 - 12:30', milestoneId: '', onRoadmap: false, isToday: true
+              },
+              {
+                id: uid('t'), title: 'Общий синк команды по прототипу',
+                description: 'Проверить прогресс всех участников и обновить вехи карты.',
+                type: 'team', assigneeId: '', status: 'todo',
+                durationMin: 40, remainingSec: 2400, running: false,
+                timeSlot: '14:00 - 14:40', milestoneId: ms2, onRoadmap: true, isToday: true
+              }
+            ],
+            decisions: []
+          }
+        ]
+      };
+    }
+
+    let state = null;
+    let memberSearchQuery = '';
+    let memberRoleFilter = 'all';
+    let memberLevelFilter = 'all';
+    let dragTaskId = null;
+
+    async function loadStateAsync() {
+      // 1. Check URL snapshot
+      try {
+        if (window.location.hash && window.location.hash.startsWith('#snap=')) {
+          const encoded = window.location.hash.slice(6);
+          const parsed = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+          if (parsed && Array.isArray(parsed.folders)) {
+            state = parsed;
+            state.roleMode = 'member';
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 2. Check IndexedDB
+      const idbData = await idbLoad();
+      if (idbData && Array.isArray(idbData.folders)) {
+        state = idbData;
+        state.folders.forEach(f => (f.tasks || []).forEach(tk => { tk.running = false; }));
+        return;
+      }
+
+      // 3. Check localStorage (v3 or migrate v2)
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('studio_command_hub_v2');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.folders)) {
+            state = parsed;
+            state.folders.forEach(f => (f.tasks || []).forEach(tk => { tk.running = false; }));
+            return;
+          }
+        }
+      } catch (e) {}
+
+      state = createDefaultState();
+    }
+
+    function saveState() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+      idbSave(state);
+      writeToLinkedDiskFile(state);
+      const stText = document.getElementById('saveStatusText');
+      if (stText) stText.textContent = linkedFileHandle ? t('savedDisk') : t('saved');
+    }
+
+    function t(key) {
+      return (I18N[state.lang] && I18N[state.lang][key]) || I18N.ru[key] || key;
+    }
+
+    function getActiveFolder() {
+      return state.folders.find(f => f.id === state.activeFolderId) || state.folders[0] || null;
+    }
+
+    /* =========================================================================
+       4. AUDIO CHIME & RICH 11-TYPE CANVAS PARTICLE FX ENGINE
+    ========================================================================= */
+    let audioCtx = null;
+    function playChime() {
+      if (state.muted) return;
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        if (!audioCtx) audioCtx = new Ctx();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.18);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.56);
+      } catch (e) {}
+    }
+
+    let fxAnimId = null;
+    let fxParticles = [];
+
+    function initParticles(type, level) {
+      const canvas = document.getElementById('fxCanvas');
+      if (!canvas) return;
+      const w = canvas.width = window.innerWidth;
+      const h = canvas.height = window.innerHeight;
+      fxParticles = [];
+      if (level === 'off') return;
+      const count = level === 'high' ? 56 : 24;
+      for (let i = 0; i < count; i++) {
+        fxParticles.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          size: 3 + Math.random() * 8,
+          vx: type === 'rain' ? -1.8 : (Math.random() - 0.5) * 0.9,
+          vy: type === 'rain' ? (8 + Math.random() * 6)
+            : (type === 'embers' || type === 'bubbles' || type === 'smoke') ? -(0.35 + Math.random() * 1.1)
+            : (0.28 + Math.random() * 1.0),
+          rot: Math.random() * Math.PI * 2,
+          vrot: (Math.random() - 0.5) * 0.04,
+          alpha: 0.2 + Math.random() * 0.55,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    function startFxLoop(theme) {
+      if (fxAnimId) cancelAnimationFrame(fxAnimId);
+      const canvas = document.getElementById('fxCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      initParticles(theme.particleType, state.fxLevel);
+      let tick = 0;
+
+      function step() {
+        tick += 0.02;
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        if (state.fxLevel === 'off') return;
+
+        const c1 = theme.palette.accent;
+        const c2 = theme.palette.accent2;
+        const pt = theme.particleType;
+
+        for (const p of fxParticles) {
+          p.x += p.vx + (pt === 'rain' ? 0 : Math.sin(tick + p.phase) * 0.4);
+          p.y += p.vy;
+          p.rot += p.vrot;
+
+          if (p.y > h + 25) { p.y = -25; p.x = Math.random() * w; }
+          if (p.y < -25) { p.y = h + 25; p.x = Math.random() * w; }
+          if (p.x > w + 25) p.x = -25;
+          if (p.x < -25) p.x = w + 25;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.globalAlpha = p.alpha;
+
+          if (pt === 'feathers') {
+            ctx.fillStyle = '#09090b';
+            ctx.strokeStyle = c1;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, p.size * 1.6, p.size * 0.45, 0, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-p.size * 1.8, 0); ctx.lineTo(p.size * 1.6, 0); ctx.stroke();
+          } else if (pt === 'sakura') {
+            ctx.fillStyle = p.phase > 3 ? c1 : c2;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, p.size * 0.85, p.size * 0.48, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (pt === 'rain') {
+            ctx.rotate(-p.rot);
+            ctx.strokeStyle = c1;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-4, 18);
+            ctx.stroke();
+          } else if (pt === 'embers' || pt === 'sparks') {
+            ctx.fillStyle = p.phase > 3 ? c1 : c2;
+            ctx.shadowColor = c1;
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size * 0.32, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (pt === 'smoke') {
+            ctx.fillStyle = theme.palette.textMuted;
+            ctx.globalAlpha = p.alpha * 0.28;
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size * 2.2, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (pt === 'bubbles') {
+            ctx.strokeStyle = c2;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size * 0.6, 0, Math.PI * 2);
+            ctx.stroke();
+          } else if (pt === 'leaves') {
+            ctx.fillStyle = p.phase > 4.2 ? c2 : c1;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, p.size * 0.95, p.size * 0.42, 0, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (pt === 'snow') {
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size * 0.36, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (pt === 'dust') {
+            ctx.fillStyle = c2;
+            ctx.globalAlpha = p.alpha * (0.5 + 0.5 * Math.sin(tick * 2 + p.phase));
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size * 0.32, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.fillStyle = '#ffffff';
+            ctx.globalAlpha = p.alpha * (0.4 + 0.6 * Math.sin(tick * 2 + p.phase));
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size * 0.25, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+        fxAnimId = requestAnimationFrame(step);
+      }
+      fxAnimId = requestAnimationFrame(step);
+    }
+
+    function applyTheme(theme) {
+      const p = theme.palette;
+      const root = document.documentElement;
+      root.style.setProperty('--bg-main', p.bgMain);
+      root.style.setProperty('--bg-panel', p.bgPanel);
+      root.style.setProperty('--bg-card', p.bgCard);
+      root.style.setProperty('--bg-card-hover', p.bgCardHover);
+      root.style.setProperty('--border-color', p.border);
+      root.style.setProperty('--accent', p.accent);
+      root.style.setProperty('--accent-soft', p.accentSoft);
+      root.style.setProperty('--accent-2', p.accent2);
+      root.style.setProperty('--text-main', p.textMain);
+      root.style.setProperty('--text-muted', p.textMuted);
+      root.style.setProperty('--glow', p.glow);
+      root.style.setProperty('--font-display', theme.fontDisplay || "'Inter', system-ui, sans-serif");
+
+      const scenic = document.getElementById('scenicBackdrop');
+      scenic.innerHTML = state.fxLevel === 'off' ? '' : getScenicBackdropSVG(theme);
+      scenic.style.opacity = state.fxLevel === 'high' ? '0.62' : state.fxLevel === 'low' ? '0.35' : '0';
+
+      document.getElementById('cursorGlow').style.opacity = state.fxLevel === 'off' ? '0' : '0.55';
+      document.getElementById('fxVhsOverlay').classList.toggle('active', state.fxLevel !== 'off' && theme.overlay === 'vhs');
+      document.getElementById('fxGrainOverlay').classList.toggle('active', state.fxLevel !== 'off' && theme.overlay === 'grain');
+      document.getElementById('fxGridOverlay').classList.toggle('active', state.fxLevel !== 'off' && theme.overlay === 'grid');
+
+      const brandSlot = document.getElementById('brandIconSlot');
+      if (brandSlot) brandSlot.innerHTML = getThemeFlagSVG(theme.flagIcon, p.accent, 22);
+      startFxLoop(theme);
+    }
+
+    /* =========================================================================
+       5. HELPERS, TOASTS & MODALS
+    ========================================================================= */
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function formatTimer(sec) {
+      const s = Math.max(0, Math.floor(sec || 0));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const r = s % 60;
+      const pad = n => String(n).padStart(2, '0');
+      return h > 0 ? `${pad(h)}:${pad(m)}:${pad(r)}` : `${pad(m)}:${pad(r)}`;
+    }
+
+    function showToast(message) {
+      const root = document.getElementById('toastRoot');
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = message;
+      root.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.25s ease';
+        setTimeout(() => el.remove(), 260);
+      }, 3000);
+    }
+
+    function openModal(htmlContent) {
+      const root = document.getElementById('modalRoot');
+      root.className = 'modal-backdrop';
+      root.innerHTML = `<div class="panel rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-5 shadow-2xl relative" onclick="event.stopPropagation()">${htmlContent}</div>`;
+      root.onclick = closeModal;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeModal() {
+      const root = document.getElementById('modalRoot');
+      root.className = 'hidden';
+      root.innerHTML = '';
+      root.onclick = null;
+    }
+
+    function confirmDelete(itemLabel, onConfirm) {
+      if (state.roleMode !== 'director') {
+        showToast(t('deleteLockedToast'));
+        return;
+      }
+      openModal(`
+        <div class="space-y-4">
+          <div class="flex items-center gap-2 text-red-400">
+            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            <h3 class="font-bold text-base">${t('confirmDeleteTitle')}</h3>
+          </div>
+          <p class="text-sm" style="color: var(--text-muted);">${escapeHtml(itemLabel)}</p>
+          <div class="flex justify-end gap-2 pt-2">
+            <button id="cancelConfirmBtn" class="px-3.5 py-2 rounded-lg text-xs font-medium card">${t('cancelBtn')}</button>
+            <button id="okConfirmBtn" class="px-3.5 py-2 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-500 text-white">${t('confirmDeleteBtn')}</button>
+          </div>
+        </div>
+      `);
+      document.getElementById('cancelConfirmBtn').addEventListener('click', closeModal);
+      document.getElementById('okConfirmBtn').addEventListener('click', () => { closeModal(); onConfirm(); });
+    }
+
+    /* =========================================================================
+       6. LIVE TIMER LOOP
+    ========================================================================= */
+    let timerInterval = null;
+    function startGlobalTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        let changed = false;
+        for (const folder of state.folders) {
+          for (const task of folder.tasks) {
+            if (task.running) {
+              if (task.remainingSec > 0) {
+                task.remainingSec -= 1;
+                changed = true;
+                const el = document.querySelector(`[data-timer-display="${task.id}"]`);
+                if (el) el.textContent = formatTimer(task.remainingSec);
+                const bar = document.querySelector(`[data-timer-bar="${task.id}"]`);
+                if (bar && task.durationMin > 0) {
+                  const total = task.durationMin * 60;
+                  bar.style.width = Math.min(100, Math.max(0, ((total - task.remainingSec) / total) * 100)) + '%';
+                }
+              }
+              if (task.remainingSec <= 0) {
+                task.running = false;
+                playChime();
+                showToast(`${t('toastTimerDone')} ${task.title}`);
+                changed = true;
+                renderAll();
+              }
+            }
+          }
+        }
+        if (changed) saveState();
+      }, 1000);
+    }
+
+    /* =========================================================================
+       7. MASTER RENDER ROUTER
+    ========================================================================= */
+    function renderAll() {
+      const inFolder = state.view === 'folder' && getActiveFolder();
+      const folder = inFolder ? getActiveFolder() : null;
+      applyTheme(folder ? folder.theme : HUB_NEUTRAL_THEME);
+
+      document.getElementById('backToHomeBtn').classList.toggle('hidden', !inFolder);
+      document.getElementById('openThemeModalBtn').classList.toggle('hidden', !inFolder);
+      document.getElementById('folderNavBar').classList.toggle('hidden', !inFolder);
+
+      document.getElementById('headerTitle').textContent = folder ? folder.name : t('hubTitle');
+      document.getElementById('headerSubtitle').textContent = folder
+        ? `🎨 ${folder.theme.prompt} · ${state.lang === 'ru' ? folder.theme.moodLabelRu : folder.theme.moodLabelEn}`
+        : t('hubSubtitle');
+      document.getElementById('saveStatusText').textContent = linkedFileHandle ? t('savedDisk') : t('saved');
+
+      document.getElementById('toggleLangBtn').textContent = state.lang.toUpperCase();
+      document.getElementById('fxLevelSelect').value = state.fxLevel;
+
+      const isDir = state.roleMode === 'director';
+      document.getElementById('roleLockText').textContent = isDir ? t('directorMode') : t('memberMode');
+      const roleIcon = document.getElementById('roleLockIcon');
+      roleIcon.setAttribute('data-lucide', isDir ? 'shield-check' : 'lock');
+      roleIcon.className = isDir ? 'w-3.5 h-3.5 text-emerald-400' : 'w-3.5 h-3.5 text-amber-400';
+
+      document.getElementById('muteIcon').setAttribute('data-lucide', state.muted ? 'volume-x' : 'volume-2');
+      document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+
+      const main = document.getElementById('mainContent');
+      if (!inFolder) {
+        renderHomeFoldersHub(main);
+      } else {
+        document.getElementById('badgeTeamCount').textContent = folder.members.length;
+        document.getElementById('badgeTaskCount').textContent = folder.tasks.length;
+        document.getElementById('badgeMilestoneCount').textContent = folder.milestones.length;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === state.activeTab));
+        renderFolderView(main, folder);
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    /* =========================================================================
+       8. HOME SCREEN: ALL PROJECT FOLDERS HUB
+    ========================================================================= */
+    function renderHomeFoldersHub(container) {
+      const isDir = state.roleMode === 'director';
+      container.innerHTML = `
+        <div class="space-y-6 py-2">
+          <div class="flex flex-wrap items-end justify-between gap-4">
+            <div class="max-w-2xl">
+              <h2 class="text-xl sm:text-2xl font-black tracking-tight">${t('homeHeading')}</h2>
+              <p class="text-xs sm:text-sm mt-1" style="color: var(--text-muted);">${t('homeDesc')}</p>
+            </div>
+            <button id="homeNewFolderTopBtn" class="btn-accent px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2">
+              <i data-lucide="folder-plus" class="w-4 h-4"></i>
+              <span>${t('createFolderCardTitle')}</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <button id="homeNewFolderCard" type="button" class="rounded-2xl p-6 border-2 border-dashed flex flex-col items-center justify-center text-center gap-3 min-h-[225px] hover:scale-[1.01] transition-all cursor-pointer" style="border-color: var(--accent); background: var(--accent-soft);">
+              <div class="w-14 h-14 rounded-2xl btn-accent flex items-center justify-center">
+                <i data-lucide="plus" class="w-7 h-7"></i>
+              </div>
+              <div>
+                <div class="font-bold text-base">${t('createFolderCardTitle')}</div>
+                <div class="text-xs mt-1 max-w-xs" style="color: var(--text-muted);">${t('createFolderCardSub')}</div>
+              </div>
+            </button>
+
+            ${state.folders.map(f => {
+              const p = f.theme.palette;
+              const done = f.tasks.filter(x => x.status === 'done').length;
+              const total = f.tasks.length;
+              const pct = total ? Math.round((done / total) * 100) : 0;
+              return `
+                <div class="rounded-2xl overflow-hidden border flex flex-col justify-between min-h-[225px] relative cursor-pointer transition-all hover:scale-[1.015]"
+                  style="background:${p.bgCard}; border-color:${p.border}; box-shadow: 0 10px 28px rgba(0,0,0,0.35);"
+                  data-open-folder="${f.id}">
+                  <div class="relative p-4 pb-3 border-b overflow-hidden min-h-[115px]" style="background:${p.bgPanel}; border-color:${p.border};">
+                    <div class="absolute inset-0 opacity-45 pointer-events-none">${getScenicBackdropSVG(f.theme)}</div>
+                    <div class="relative z-10 flex items-start justify-between gap-2">
+                      <div class="w-10 h-10 rounded-xl flex items-center justify-center border shrink-0" style="background:${p.accentSoft}; border-color:${p.accent};">
+                        ${getThemeFlagSVG(f.theme.flagIcon, p.accent, 22)}
+                      </div>
+                      ${isDir ? `
+                        <button type="button" data-del-folder="${f.id}" class="p-1.5 rounded-lg bg-black/50 text-red-400 hover:bg-red-500/30 z-20" title="${t('del')}">
+                          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                      ` : ''}
+                    </div>
+                    <div class="relative z-10 mt-3">
+                      <h3 class="font-bold text-base truncate" style="color:${p.textMain}; font-family:${f.theme.fontDisplay || 'inherit'};">${escapeHtml(f.name)}</h3>
+                      <div class="text-xs truncate mt-0.5 font-medium" style="color:${p.accent};">🎨 ${escapeHtml(f.theme.prompt)}</div>
+                    </div>
+                  </div>
+
+                  <div class="p-4 space-y-3">
+                    <div class="flex items-center justify-between text-xs" style="color:${p.textMuted};">
+                      <span>👥 ${f.members.length} ${t('membersShort')}</span>
+                      <span>✅ ${done}/${total} ${t('tasksShort')}</span>
+                      <span>🚩 ${f.milestones.length} ${t('milestonesShort')}</span>
+                    </div>
+                    <div class="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div class="h-full rounded-full" style="width:${pct}%; background: linear-gradient(90deg, ${p.accent}, ${p.accent2});"></div>
+                    </div>
+                    <div class="flex items-center justify-between pt-1">
+                      <span class="text-[11px] truncate max-w-[170px]" style="color:${p.textMuted};">${state.lang === 'ru' ? f.theme.moodLabelRu : f.theme.moodLabelEn}</span>
+                      <span class="text-xs font-semibold px-2.5 py-1 rounded-lg shrink-0" style="background:${p.accentSoft}; color:${p.textMain}; border:1px solid ${p.accent};">
+                        ${t('openFolderBtn')} →
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('homeNewFolderTopBtn').addEventListener('click', openNewFolderWizard);
+      document.getElementById('homeNewFolderCard').addEventListener('click', openNewFolderWizard);
+      container.querySelectorAll('[data-open-folder]').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('[data-del-folder]')) return;
+          state.activeFolderId = card.dataset.openFolder;
+          state.view = 'folder';
+          state.activeTab = 'team';
+          state.taskFilterMemberId = 'all';
+          saveState(); renderAll();
+        });
+      });
+      container.querySelectorAll('[data-del-folder]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const f = state.folders.find(x => x.id === btn.dataset.delFolder);
+          if (!f) return;
+          confirmDelete(`Удалить папку «${f.name}» со всеми данными?`, () => {
+            state.folders = state.folders.filter(x => x.id !== f.id);
+            if (state.activeFolderId === f.id) state.activeFolderId = (state.folders[0] || {}).id || '';
+            saveState(); renderAll(); showToast(t('toastSaved'));
+          });
+        });
+      });
+    }
+
+    function openNewFolderWizard() {
+      openModal(`
+        <form id="folderWizardForm" class="space-y-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-5 h-5" style="color: var(--accent);"></i>
+            <h3 class="font-bold text-base">${t('folderWizardTitle')}</h3>
+          </div>
+          <div>
+            <label class="block text-xs mb-1" style="color: var(--text-muted);">${t('folderNameLabel')} *</label>
+            <input id="wizName" required class="w-full" placeholder="Например: Проект №1" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">${t('folderThemeAsk')} *</label>
+            <input id="wizTheme" required class="w-full" placeholder="${t('folderThemePlaceholder')}" />
+          </div>
+          <div>
+            <div class="text-[11px] mb-1.5" style="color: var(--text-muted);">${t('presetsLabel')}</div>
+            <div class="flex flex-wrap gap-1.5">
+              ${THEME_PRESETS.map(p => {
+                const label = state.lang === 'ru' ? p.ru : p.en;
+                const th = analyzeAndGenerateTheme(label);
+                return `<button type="button" data-wiz-preset="${escapeHtml(label)}" class="px-2.5 py-1 rounded-lg card text-[11px] flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full" style="background:${th.palette.accent}"></span>
+                  ${escapeHtml(label)}
+                </button>`;
+              }).join('')}
+            </div>
+          </div>
+          <div>
+            <div class="text-[11px] mb-1.5" style="color: var(--text-muted);">${t('livePreviewLabel')}</div>
+            <div id="wizPreviewBox" class="rounded-xl p-4 border relative overflow-hidden min-h-[82px]"></div>
+          </div>
+          <div class="flex justify-end gap-2 pt-2 border-t" style="border-color: var(--border-color);">
+            <button type="button" id="cancelWizBtn" class="px-4 py-2 rounded-lg card text-xs">${t('cancelBtn')}</button>
+            <button type="submit" class="btn-accent px-4 py-2 rounded-lg text-xs font-semibold">${t('createBtn')}</button>
+          </div>
+        </form>
+      `);
+
+      function updatePreview() {
+        const val = document.getElementById('wizTheme').value.trim() || 'Новый проект';
+        const th = analyzeAndGenerateTheme(val);
+        const box = document.getElementById('wizPreviewBox');
+        box.style.background = th.palette.bgPanel;
+        box.style.borderColor = th.palette.accent;
+        box.innerHTML = `
+          <div class="absolute inset-0 opacity-45 pointer-events-none">${getScenicBackdropSVG(th)}</div>
+          <div class="relative z-10 flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center border shrink-0" style="background:${th.palette.accentSoft}; border-color:${th.palette.accent};">
+              ${getThemeFlagSVG(th.flagIcon, th.palette.accent, 24)}
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-sm truncate" style="color:${th.palette.textMain}; font-family:${th.fontDisplay};">${escapeHtml(val)}</div>
+              <div class="text-[11px]" style="color:${th.palette.textMuted};">${state.lang === 'ru' ? th.moodLabelRu : th.moodLabelEn}</div>
+            </div>
+            <div class="flex gap-1 shrink-0">
+              <span class="w-4 h-4 rounded-full border border-white/25" style="background:${th.palette.accent}"></span>
+              <span class="w-4 h-4 rounded-full border border-white/25" style="background:${th.palette.accent2}"></span>
+            </div>
+          </div>
+        `;
+      }
+
+      updatePreview();
+      document.getElementById('wizTheme').addEventListener('input', updatePreview);
+      document.querySelectorAll('[data-wiz-preset]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById('wizTheme').value = btn.dataset.wizPreset;
+          if (!document.getElementById('wizName').value.trim()) document.getElementById('wizName').value = btn.dataset.wizPreset;
+          updatePreview();
+        });
+      });
+
+      document.getElementById('cancelWizBtn').addEventListener('click', closeModal);
+      document.getElementById('folderWizardForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('wizName').value.trim();
+        const themePrompt = document.getElementById('wizTheme').value.trim();
+        const newFolder = {
+          id: uid('folder'),
+          name,
+          theme: analyzeAndGenerateTheme(themePrompt),
+          members: [],
+          milestones: [
+            { id: uid('ms'), title: state.lang === 'ru' ? 'Старт: Обсуждение идеи' : 'Kickoff: Idea', description: '', targetDate: '', completed: false },
+            { id: uid('ms'), title: state.lang === 'ru' ? 'Первый прототип' : 'First Prototype', description: '', targetDate: '', completed: false },
+            { id: uid('ms'), title: state.lang === 'ru' ? 'Финальный релиз' : 'Final Release', description: '', targetDate: '', completed: false }
+          ],
+          tasks: [],
+          decisions: []
+        };
+        state.folders.unshift(newFolder);
+        state.activeFolderId = newFolder.id;
+        state.view = 'folder';
+        state.activeTab = 'team';
+        saveState(); closeModal(); renderAll();
+        showToast(`${t('toastThemeApplied')} ${themePrompt}`);
+      });
+    }
+
+    /* =========================================================================
+       9. INSIDE FOLDER + TABS
+    ========================================================================= */
+    function renderFolderView(container, folder) {
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="panel rounded-2xl p-4 sm:p-5 relative overflow-hidden flex flex-wrap items-center justify-between gap-3">
+            <div class="absolute inset-0 opacity-40 pointer-events-none">${getScenicBackdropSVG(folder.theme)}</div>
+            <div class="relative z-10 flex items-center gap-3 min-w-0">
+              <div class="w-12 h-12 rounded-xl flex items-center justify-center border shrink-0" style="background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 18px var(--glow);">
+                ${getThemeFlagSVG(folder.theme.flagIcon, folder.theme.palette.accent, 26)}
+              </div>
+              <div class="min-w-0">
+                <div class="font-bold text-base sm:text-lg truncate display-font">${escapeHtml(folder.name)}</div>
+                <div class="text-xs truncate" style="color: var(--text-muted);">
+                  🎨 ${escapeHtml(folder.theme.prompt)} · ${state.lang === 'ru' ? folder.theme.moodLabelRu : folder.theme.moodLabelEn}
+                </div>
+              </div>
+            </div>
+            <div class="relative z-10 flex items-center gap-2">
+              <button id="bannerEditThemeBtn" class="px-3.5 py-2 rounded-xl card text-xs font-semibold flex items-center gap-1.5">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5" style="color: var(--accent);"></i>
+                <span>${t('themeBtn')}</span>
+              </button>
+            </div>
+          </div>
+          <div id="tabBodyRoot"></div>
+        </div>
+      `;
+      document.getElementById('bannerEditThemeBtn').addEventListener('click', openThemeModal);
+      const body = document.getElementById('tabBodyRoot');
+      if (state.activeTab === 'team') renderTeamTab(body, folder);
+      else if (state.activeTab === 'tasks') renderTasksTab(body, folder);
+      else if (state.activeTab === 'roadmap') renderRoadmapTab(body, folder);
+      else renderDirectorTab(body, folder);
+    }
+
+    function renderTeamTab(container, folder) {
+      const isDir = state.roleMode === 'director';
+      const allRoles = Array.from(new Set([...PRESET_ROLES, ...folder.members.flatMap(m => m.roles || [])]));
+      const filtered = [...folder.members].sort((a, b) => (a.order || 0) - (b.order || 0)).filter(m => {
+        const q = memberSearchQuery.toLowerCase().trim();
+        const matchQ = !q || (m.name || '').toLowerCase().includes(q) || (m.roles || []).some(r => r.toLowerCase().includes(q)) || (m.expText || '').toLowerCase().includes(q) || (m.phone || '').toLowerCase().includes(q);
+        const matchRole = memberRoleFilter === 'all' || (m.roles || []).includes(memberRoleFilter);
+        const matchLevel = memberLevelFilter === 'all' || m.level === memberLevelFilter;
+        return matchQ && matchRole && matchLevel;
+      });
+
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[240px]">
+              <div class="relative flex-1 min-w-[200px] max-w-sm">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style="color: var(--text-muted);"></i>
+                <input id="memberSearchInput" type="text" value="${escapeHtml(memberSearchQuery)}" placeholder="${t('searchMemberPlaceholder')}" class="w-full pl-9" />
+              </div>
+              <select id="memberRoleFilterSel">
+                <option value="all">${t('allRoles')}</option>
+                ${allRoles.map(r => `<option value="${escapeHtml(r)}" ${memberRoleFilter === r ? 'selected' : ''}>${escapeHtml(r)}</option>`).join('')}
+              </select>
+              <select id="memberLevelFilterSel">
+                <option value="all">${t('allLevels')}</option>
+                ${SKILL_LEVELS.map(lv => `<option value="${lv.id}" ${memberLevelFilter === lv.id ? 'selected' : ''}>${state.lang === 'ru' ? lv.ru : lv.en}</option>`).join('')}
+              </select>
+            </div>
+            <button id="addMemberBtn" class="btn-accent px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5">
+              <i data-lucide="user-plus" class="w-4 h-4"></i> <span>${t('addMember')}</span>
+            </button>
+          </div>
+
+          <div class="panel rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse min-w-[720px]">
+                <thead>
+                  <tr class="text-[11px] uppercase tracking-wider border-b" style="border-color: var(--border-color); color: var(--text-muted); background: rgba(0,0,0,0.24);">
+                    <th class="py-3 px-3 w-16">${t('orderCol')}</th>
+                    <th class="py-3 px-3 w-16">${t('photoCol')}</th>
+                    <th class="py-3 px-3">${t('nameCol')}</th>
+                    <th class="py-3 px-3">${t('rolesCol')}</th>
+                    <th class="py-3 px-3">${t('skillCol')}</th>
+                    <th class="py-3 px-3">${t('phoneCol')}</th>
+                    <th class="py-3 px-3 text-right">${t('actionsCol')}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y" style="border-color: var(--border-color);">
+                  ${filtered.length === 0 ? `<tr><td colspan="7" class="py-10 text-center text-sm" style="color: var(--text-muted);">${t('noMembers')}</td></tr>` : filtered.map(m => {
+                    const lv = SKILL_LEVELS.find(x => x.id === m.level) || SKILL_LEVELS[2];
+                    const stars = '★'.repeat(lv.stars) + '☆'.repeat(5 - lv.stars);
+                    const initials = (m.name || '?').split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase();
+                    return `
+                      <tr class="hover:bg-white/[0.03] transition-colors">
+                        <td class="py-3 px-3 font-mono font-bold text-sm">
+                          <div class="flex items-center gap-1">
+                            <span>#${m.order}</span>
+                            <div class="flex flex-col">
+                              <button class="opacity-60 hover:opacity-100 leading-none" data-move-member="${m.id}" data-dir="-1">▲</button>
+                              <button class="opacity-60 hover:opacity-100 leading-none" data-move-member="${m.id}" data-dir="1">▼</button>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="py-3 px-3">
+                          ${m.photo ? `<img src="${m.photo}" alt="${escapeHtml(m.name)}" class="w-11 h-11 rounded-xl object-cover border cursor-pointer" style="border-color: var(--accent);" data-zoom-photo="${m.id}" />` : `<div class="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm border" style="background: var(--accent-soft); border-color: var(--border-color);">${escapeHtml(initials)}</div>`}
+                        </td>
+                        <td class="py-3 px-3">
+                          <div class="font-semibold text-sm">${escapeHtml(m.name)}</div>
+                          <div class="text-[11px]" style="color: var(--text-muted);">${folder.tasks.filter(tk => tk.assigneeId === m.id && tk.status !== 'done').length} активн.</div>
+                        </td>
+                        <td class="py-3 px-3"><div class="flex flex-wrap gap-1">${(m.roles || []).map(r => `<span class="text-[11px] px-2 py-0.5 rounded-md accent-pill">${escapeHtml(r)}</span>`).join('')}</div></td>
+                        <td class="py-3 px-3">
+                          <div class="text-xs font-semibold" style="color:${lv.color}">${state.lang === 'ru' ? lv.ru : lv.en}</div>
+                          <div class="text-[11px]" style="color:${lv.color}">${stars}</div>
+                          ${m.expText ? `<div class="text-[11px] mt-0.5" style="color: var(--text-muted);">${escapeHtml(m.expText)}</div>` : ''}
+                        </td>
+                        <td class="py-3 px-3">${m.phone ? `<a href="tel:${escapeHtml(m.phone.replace(/\s+/g,''))}" class="text-xs font-mono hover:underline flex items-center gap-1 text-emerald-300"><i data-lucide="phone" class="w-3.5 h-3.5"></i> ${escapeHtml(m.phone)}</a>` : '<span class="text-xs opacity-40">—</span>'}</td>
+                        <td class="py-3 px-3 text-right">
+                          <div class="inline-flex items-center gap-1">
+                            <button class="p-1.5 rounded-lg card" data-edit-member="${m.id}" title="${t('edit')}"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+                            ${isDir ? `<button class="p-1.5 rounded-lg card text-red-400 hover:bg-red-500/20" data-delete-member="${m.id}" title="${t('del')}"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
+                          </div>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+            <div class="p-3 border-t flex flex-wrap items-center justify-between gap-2" style="border-color: var(--border-color); background: rgba(0,0,0,0.18);">
+              <span class="text-xs" style="color: var(--text-muted);">👥 ${folder.members.length} · ${t('quickAddMemberHint')}</span>
+              <button id="addMemberBottomBtn" class="px-3 py-1.5 rounded-lg card text-xs font-semibold flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5" style="color: var(--accent);"></i> ${t('addMember')}</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('memberSearchInput').addEventListener('input', (e) => {
+        memberSearchQuery = e.target.value; renderTeamTab(container, folder);
+        const inp = document.getElementById('memberSearchInput');
+        if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+        if (window.lucide) lucide.createIcons();
+      });
+      document.getElementById('memberRoleFilterSel').addEventListener('change', (e) => { memberRoleFilter = e.target.value; renderTeamTab(container, folder); if (window.lucide) lucide.createIcons(); });
+      document.getElementById('memberLevelFilterSel').addEventListener('change', (e) => { memberLevelFilter = e.target.value; renderTeamTab(container, folder); if (window.lucide) lucide.createIcons(); });
+      document.getElementById('addMemberBtn').addEventListener('click', () => openMemberModal(null));
+      document.getElementById('addMemberBottomBtn').addEventListener('click', () => openMemberModal(null));
+      container.querySelectorAll('[data-edit-member]').forEach(btn => btn.addEventListener('click', () => openMemberModal(btn.dataset.editMember)));
+      container.querySelectorAll('[data-delete-member]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const m = folder.members.find(x => x.id === btn.dataset.deleteMember);
+          if (!m) return;
+          confirmDelete(`Удалить участника «${m.name}»?`, () => {
+            folder.members = folder.members.filter(x => x.id !== m.id);
+            folder.tasks.forEach(tk => { if (tk.assigneeId === m.id) tk.assigneeId = ''; });
+            saveState(); renderAll();
+          });
+        });
+      });
+      container.querySelectorAll('[data-move-member]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const sorted = [...folder.members].sort((a, b) => a.order - b.order);
+          const idx = sorted.findIndex(x => x.id === btn.dataset.moveMember);
+          const swapIdx = idx + Number(btn.dataset.dir);
+          if (swapIdx >= 0 && swapIdx < sorted.length) {
+            const tmp = sorted[idx].order; sorted[idx].order = sorted[swapIdx].order; sorted[swapIdx].order = tmp;
+            saveState(); renderTeamTab(container, folder); if (window.lucide) lucide.createIcons();
+          }
+        });
+      });
+      container.querySelectorAll('[data-zoom-photo]').forEach(img => {
+        img.addEventListener('click', () => {
+          const m = folder.members.find(x => x.id === img.dataset.zoomPhoto);
+          if (!m || !m.photo) return;
+          openModal(`<div class="space-y-3 text-center"><img src="${m.photo}" alt="${escapeHtml(m.name)}" class="max-h-[65vh] mx-auto rounded-xl object-contain" /><div class="font-bold text-base">${escapeHtml(m.name)}</div><button id="closeZoomBtn" class="px-4 py-1.5 rounded-lg card text-xs">${t('closeBtn')}</button></div>`);
+          document.getElementById('closeZoomBtn').addEventListener('click', closeModal);
+        });
+      });
+    }
+
+    function openMemberModal(memberId) {
+      const folder = getActiveFolder();
+      const existing = memberId ? folder.members.find(m => m.id === memberId) : null;
+      const nextOrder = folder.members.length ? Math.max(...folder.members.map(m => m.order || 0)) + 1 : 1;
+      let selectedRoles = existing ? [...(existing.roles || [])] : ['Артовик'];
+      let currentPhoto = existing ? (existing.photo || '') : '';
+
+      function renderRoleChips() {
+        const all = Array.from(new Set([...PRESET_ROLES, ...selectedRoles]));
+        const box = document.getElementById('roleChipsBox');
+        if (!box) return;
+        box.innerHTML = all.map(r => {
+          const on = selectedRoles.includes(r);
+          return `<button type="button" data-toggle-role="${escapeHtml(r)}" class="px-2.5 py-1 rounded-lg text-xs border transition-all ${on ? 'accent-pill font-semibold' : 'card opacity-75'}">${on ? '✓ ' : '+ '}${escapeHtml(r)}</button>`;
+        }).join('');
+        box.querySelectorAll('[data-toggle-role]').forEach(b => {
+          b.addEventListener('click', () => {
+            const r = b.dataset.toggleRole;
+            if (selectedRoles.includes(r)) selectedRoles = selectedRoles.filter(x => x !== r);
+            else selectedRoles.push(r);
+            renderRoleChips();
+          });
+        });
+      }
+
+      openModal(`
+        <form id="memberForm" class="space-y-3.5">
+          <h3 class="font-bold text-base">${existing ? t('memberModalTitleEdit') : t('memberModalTitleAdd')}</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div class="sm:col-span-3"><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('fullNameLabel')} *</label><input id="memName" required class="w-full" value="${escapeHtml(existing ? existing.name : '')}" placeholder="Фамилия Имя" /></div>
+            <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('orderLabel')}</label><input id="memOrder" type="number" min="1" class="w-full" value="${existing ? existing.order : nextOrder}" /></div>
+          </div>
+          <div>
+            <label class="block text-xs mb-1.5" style="color: var(--text-muted);">${t('rolesLabel')}</label>
+            <div id="roleChipsBox" class="flex flex-wrap gap-1.5 mb-2"></div>
+            <div class="flex gap-2"><input id="customRoleInput" type="text" class="flex-1" placeholder="${t('customRolePlaceholder')}" /><button type="button" id="addCustomRoleBtn" class="px-3 py-1.5 rounded-lg card text-xs">+ OK</button></div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('levelLabel')}</label><select id="memLevel" class="w-full">${SKILL_LEVELS.map(lv => `<option value="${lv.id}" ${(existing ? existing.level : 'middle') === lv.id ? 'selected' : ''}>${state.lang === 'ru' ? lv.ru : lv.en}</option>`).join('')}</select></div>
+            <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('phoneLabel')}</label><input id="memPhone" type="tel" class="w-full" value="${escapeHtml(existing ? existing.phone : '')}" placeholder="+996 ..." /></div>
+          </div>
+          <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('expYearsLabel')}</label><input id="memExp" class="w-full" value="${escapeHtml(existing ? existing.expText : '')}" placeholder="Например: 2 года, 3D / Программирование" /></div>
+          <div>
+            <label class="block text-xs mb-1.5" style="color: var(--text-muted);">${t('photoLabel')}</label>
+            <div class="flex items-center gap-3">
+              <div id="photoPreviewBox" class="w-14 h-14 rounded-xl border flex items-center justify-center overflow-hidden shrink-0" style="border-color: var(--border-color); background: rgba(0,0,0,0.3);">${currentPhoto ? `<img src="${currentPhoto}" class="w-full h-full object-cover" />` : `<i data-lucide="camera" class="w-5 h-5 opacity-50"></i>`}</div>
+              <div class="flex flex-wrap gap-2">
+                <label class="px-3 py-1.5 rounded-lg card text-xs cursor-pointer">${t('uploadPhoto')}<input id="memPhotoInput" type="file" accept="image/*" class="hidden" /></label>
+                <button type="button" id="removePhotoBtn" class="px-3 py-1.5 rounded-lg card text-xs text-red-400">${t('removePhoto')}</button>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-3 border-t" style="border-color: var(--border-color);">
+            <button type="button" id="cancelMemBtn" class="px-4 py-2 rounded-lg card text-xs">${t('cancelBtn')}</button>
+            <button type="submit" class="btn-accent px-4 py-2 rounded-lg text-xs font-semibold">${t('saveBtn')}</button>
+          </div>
+        </form>
+      `);
+      renderRoleChips();
+      const addCustom = () => {
+        const inp = document.getElementById('customRoleInput');
+        const val = inp.value.trim();
+        if (val && !selectedRoles.includes(val)) { selectedRoles.push(val); inp.value = ''; renderRoleChips(); }
+      };
+      document.getElementById('addCustomRoleBtn').addEventListener('click', addCustom);
+      document.getElementById('customRoleInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } });
+      document.getElementById('memPhotoInput').addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const c = document.createElement('canvas');
+            const scale = Math.min(1, 240 / Math.max(img.width, img.height));
+            c.width = img.width * scale; c.height = img.height * scale;
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            currentPhoto = c.toDataURL('image/jpeg', 0.82);
+            document.getElementById('photoPreviewBox').innerHTML = `<img src="${currentPhoto}" class="w-full h-full object-cover" />`;
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+      document.getElementById('removePhotoBtn').addEventListener('click', () => {
+        currentPhoto = '';
+        document.getElementById('photoPreviewBox').innerHTML = `<i data-lucide="camera" class="w-5 h-5 opacity-50"></i>`;
+        if (window.lucide) lucide.createIcons();
+      });
+      document.getElementById('cancelMemBtn').addEventListener('click', closeModal);
+      document.getElementById('memberForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const data = {
+          id: existing ? existing.id : uid('mem'),
+          order: Math.max(1, Number(document.getElementById('memOrder').value) || nextOrder),
+          name: document.getElementById('memName').value.trim(),
+          roles: selectedRoles.length ? selectedRoles : ['Участник'],
+          level: document.getElementById('memLevel').value,
+          expText: document.getElementById('memExp').value.trim(),
+          phone: document.getElementById('memPhone').value.trim(),
+          photo: currentPhoto
+        };
+        if (existing) Object.assign(existing, data);
+        else folder.members.push(data);
+        saveState(); closeModal(); renderAll(); showToast(t('toastSaved'));
+      });
+    }
+
+    /* =========================================================================
+       10. TAB 2: TASKS & DAILY SCHEDULE
+    ========================================================================= */
+    function renderTasksTab(container, folder) {
+      const isDir = state.roleMode === 'director';
+      const sortedMembers = [...folder.members].sort((a, b) => a.order - b.order);
+      const filtered = folder.tasks.filter(tk => {
+        if (state.taskFilterMemberId === 'all') return true;
+        if (state.taskFilterMemberId === 'team') return tk.type === 'team';
+        if (state.taskFilterMemberId === 'rest') return tk.type === 'rest';
+        return tk.assigneeId === state.taskFilterMemberId;
+      });
+
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-1 panel p-1 rounded-xl">
+              <button id="viewTodayBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${state.taskViewMode === 'today' ? 'accent-pill' : ''}">🕒 ${t('viewToday')}</button>
+              <button id="viewAssignBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${state.taskViewMode === 'assign' ? 'accent-pill' : ''}">👥 ${t('viewAssign')}</button>
+              <button id="viewMsBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${state.taskViewMode === 'milestones' ? 'accent-pill' : ''}">🚩 ${t('viewByMilestone')}</button>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button id="quickBreakBtn" class="px-3 py-2 rounded-xl text-xs font-semibold card text-emerald-300 border-emerald-500/30 flex items-center gap-1"><i data-lucide="coffee" class="w-3.5 h-3.5"></i> <span>${t('addBreak')}</span></button>
+              <button id="addTaskBtn" class="btn-accent px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="plus" class="w-4 h-4"></i> <span>${t('addTask')}</span></button>
+            </div>
+          </div>
+
+          <div class="panel rounded-2xl p-3 space-y-2">
+            <div class="text-[11px] font-semibold uppercase tracking-wider" style="color: var(--text-muted);">${t('membersStripTitle')}</div>
+            <div class="flex flex-wrap gap-2">
+              <button class="px-3 py-2 rounded-xl text-xs font-medium border ${state.taskFilterMemberId === 'all' ? 'accent-pill' : 'card'}" data-filter-target="all">📋 ${t('allTasksFilter')} (${folder.tasks.length})</button>
+              <button class="px-3 py-2 rounded-xl text-xs font-medium border ${state.taskFilterMemberId === 'team' ? 'accent-pill' : 'card'}" data-filter-target="team" data-drop-type="team">🤝 ${t('teamTasksFilter')} (${folder.tasks.filter(x => x.type === 'team').length})</button>
+              <button class="px-3 py-2 rounded-xl text-xs font-medium border ${state.taskFilterMemberId === 'rest' ? 'accent-pill' : 'card'}" data-filter-target="rest" data-drop-type="rest">☕ ${t('restTasksFilter')} (${folder.tasks.filter(x => x.type === 'rest').length})</button>
+              ${sortedMembers.map(m => {
+                const count = folder.tasks.filter(x => x.assigneeId === m.id && x.status !== 'done').length;
+                const active = state.taskFilterMemberId === m.id;
+                return `<div class="px-3 py-1.5 rounded-xl cursor-pointer border transition-all ${active ? 'accent-pill' : 'card'}" data-filter-target="${m.id}" data-drop-member="${m.id}"><div class="text-xs font-semibold flex items-center gap-1.5"><span>${escapeHtml(m.name)}</span><span class="text-[10px] px-1.5 rounded bg-white/10">${count}</span></div><div class="text-[10px] truncate max-w-[190px]" style="color: var(--text-muted);">${(m.roles || []).join(' • ')}</div></div>`;
+              }).join('')}
+            </div>
+          </div>
+
+          ${state.taskViewMode === 'today' ? renderTodayTimelineHTML(folder, filtered, isDir) : state.taskViewMode === 'milestones' ? renderByMilestoneHTML(folder, filtered, sortedMembers, isDir) : renderTaskCardsHTML(folder, filtered, sortedMembers, isDir)}
+        </div>
+      `;
+
+      document.getElementById('viewTodayBtn').addEventListener('click', () => { state.taskViewMode = 'today'; saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons(); });
+      document.getElementById('viewAssignBtn').addEventListener('click', () => { state.taskViewMode = 'assign'; saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons(); });
+      document.getElementById('viewMsBtn').addEventListener('click', () => { state.taskViewMode = 'milestones'; saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons(); });
+      document.getElementById('addTaskBtn').addEventListener('click', () => openTaskModal(null, null));
+      document.getElementById('quickBreakBtn').addEventListener('click', () => {
+        folder.tasks.push({
+          id: uid('t'), title: state.lang === 'ru' ? 'Перерыв / Отдых 30 минут' : 'Team Break / 30m Rest',
+          description: state.lang === 'ru' ? 'Отдых от экрана и восстановление сил.' : 'Rest away from screens.',
+          type: 'rest', assigneeId: '', status: 'todo', durationMin: 30, remainingSec: 1800,
+          running: false, timeSlot: '15:00 - 15:30', milestoneId: '', onRoadmap: false, isToday: true
+        });
+        saveState(); renderAll(); showToast(t('toastSaved'));
+      });
+      bindTaskInteractions(container, folder);
+    }
+
+    function renderTodayTimelineHTML(folder, tasks, isDir) {
+      const todayTasks = tasks.filter(tk => tk.isToday !== false).sort((a, b) => (a.timeSlot || '99:99').localeCompare(b.timeSlot || '99:99'));
+      if (todayTasks.length === 0) return `<div class="panel rounded-2xl p-10 text-center text-sm" style="color: var(--text-muted);">${t('todayEmpty')}</div>`;
+      return `<div class="panel rounded-2xl p-4 space-y-2.5">${todayTasks.map(tk => {
+        const mem = folder.members.find(m => m.id === tk.assigneeId);
+        const ms = folder.milestones.find(m => m.id === tk.milestoneId);
+        const borderCol = tk.type === 'rest' ? '#10b981' : tk.type === 'team' ? '#6366f1' : 'var(--accent)';
+        return `
+          <div draggable="true" data-drag-task="${tk.id}" class="card rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 border-l-4 cursor-grab" style="border-left-color:${borderCol};">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <div class="font-mono text-xs font-bold px-2.5 py-1.5 rounded-lg bg-black/30 shrink-0 min-w-[110px] text-center">${escapeHtml(tk.timeSlot || 'Весь день')}</div>
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold text-sm flex items-center gap-2 flex-wrap ${tk.status === 'done' ? 'line-through opacity-70' : ''}">
+                  <span>${escapeHtml(tk.title)}</span>
+                  <span class="text-[10px] font-normal px-2 py-0.5 rounded bg-white/10">${tk.type === 'rest' ? `☕ ${t('typeRest')}` : tk.type === 'team' ? `🤝 ${t('typeTeam')}` : (mem ? mem.name : t('unassigned'))}</span>
+                  ${ms && tk.onRoadmap ? `<span class="text-[10px] px-2 py-0.5 rounded accent-pill">🚩 ${escapeHtml(ms.title)}</span>` : ''}
+                </div>
+                ${tk.description ? `<div class="text-xs mt-0.5 truncate" style="color: var(--text-muted);">${escapeHtml(tk.description)}</div>` : ''}
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="font-mono text-xs px-2 py-1 rounded bg-black/30 ${tk.running ? 'text-amber-300 font-bold' : ''}" data-timer-display="${tk.id}">${formatTimer(tk.remainingSec)}</span>
+              <button data-timer-toggle="${tk.id}" class="px-2.5 py-1 rounded-lg text-xs font-semibold ${tk.running ? 'bg-amber-500/25 text-amber-200' : 'accent-pill'}">${tk.running ? t('timerPause') : t('timerStart')}</button>
+              <button data-timer-reset="${tk.id}" class="p-1.5 rounded-lg card"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>
+              <button data-cycle-status="${tk.id}" class="px-2.5 py-1 rounded-lg text-xs card">${tk.status === 'done' ? '✅' : tk.status === 'in_progress' ? '⏳' : '⬜'}</button>
+              <button data-edit-task="${tk.id}" class="p-1.5 rounded-lg card"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+              ${isDir ? `<button data-delete-task="${tk.id}" class="p-1.5 rounded-lg card text-red-400"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}</div>`;
+    }
+
+    function renderByMilestoneHTML(folder, tasks, sortedMembers, isDir) {
+      const groups = [
+        ...folder.milestones.map(ms => ({ id: ms.id, title: '🚩 ' + ms.title, items: tasks.filter(tk => tk.milestoneId === ms.id) })),
+        { id: '', title: '📌 ' + t('noMilestone'), items: tasks.filter(tk => !tk.milestoneId) }
+      ];
+      return `<div class="space-y-4">${groups.map(g => `
+        <div class="panel rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <div class="font-bold text-sm flex items-center gap-2"><span>${escapeHtml(g.title)}</span><span class="text-xs px-2 py-0.5 rounded bg-white/10">${g.items.length}</span></div>
+            ${g.id ? `<button data-add-task-ms="${g.id}" class="px-2.5 py-1 rounded-lg card text-xs font-semibold">${t('addTaskToStage')}</button>` : ''}
+          </div>
+          ${g.items.length === 0 ? `<div class="text-xs opacity-60">${t('noTasksYet')}</div>` : renderTaskCardsHTML(folder, g.items, sortedMembers, isDir)}
+        </div>
+      `).join('')}</div>`;
+    }
+
+    function renderTaskCardsHTML(folder, tasks, sortedMembers, isDir) {
+      if (tasks.length === 0) return `<div class="panel rounded-2xl p-10 text-center text-sm" style="color: var(--text-muted);">${t('noTasksYet')}</div>`;
+      return `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">${tasks.map(tk => {
+        const totalSec = Math.max(1, (tk.durationMin || 30) * 60);
+        const pct = Math.min(100, Math.max(0, ((totalSec - (tk.remainingSec || 0)) / totalSec) * 100));
+        const stMap = { todo: { label: t('statusTodo'), cls: 'bg-slate-500/20 text-slate-300 border-slate-500/30' }, in_progress: { label: t('statusProgress'), cls: 'bg-amber-500/20 text-amber-300 border-amber-500/30' }, done: { label: t('statusDone'), cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' } };
+        const st = stMap[tk.status] || stMap.todo;
+        const assignVal = tk.type === 'team' ? '__team' : tk.type === 'rest' ? '__rest' : (tk.assigneeId || '');
+        return `
+          <div draggable="true" data-drag-task="${tk.id}" class="card rounded-2xl p-4 flex flex-col justify-between gap-3 cursor-grab ${tk.status === 'done' ? 'opacity-75' : ''}">
+            <div class="space-y-2">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-1">
+                  <span class="text-[10px] px-2 py-0.5 rounded accent-pill">${tk.type === 'team' ? '🤝 ' + t('typeTeam') : tk.type === 'rest' ? '☕ ' + t('typeRest') : '👤 ' + t('typePersonal')}</span>
+                  ${tk.onRoadmap ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-white/10">🗺️ ${t('onRoadmap')}</span>` : ''}
+                  ${tk.isToday !== false ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300">🕒 ${t('inToday')}</span>` : ''}
+                </div>
+                <button data-cycle-status="${tk.id}" class="text-[11px] px-2 py-0.5 rounded-lg border font-medium shrink-0 ${st.cls}">${st.label}</button>
+              </div>
+              <div>
+                <h4 class="font-bold text-sm ${tk.status === 'done' ? 'line-through opacity-75' : ''}">${escapeHtml(tk.title)}</h4>
+                ${tk.description ? `<p class="text-xs mt-1 line-clamp-2" style="color: var(--text-muted);">${escapeHtml(tk.description)}</p>` : ''}
+              </div>
+            </div>
+            <div class="space-y-2.5 pt-2 border-t" style="border-color: var(--border-color);">
+              <div class="flex items-center gap-2 text-xs">
+                <span class="shrink-0" style="color: var(--text-muted);">${t('assignQuick')}</span>
+                <select data-quick-assign="${tk.id}" class="flex-1 py-1 text-xs">
+                  <option value="">${t('unassigned')}</option>
+                  <option value="__team" ${assignVal === '__team' ? 'selected' : ''}>🤝 ${t('typeTeam')}</option>
+                  <option value="__rest" ${assignVal === '__rest' ? 'selected' : ''}>☕ ${t('typeRest')}</option>
+                  ${sortedMembers.map(m => `<option value="${m.id}" ${assignVal === m.id ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('')}
+                </select>
+              </div>
+              <div class="rounded-xl p-2.5 bg-black/25 space-y-1.5">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="font-mono text-sm font-bold flex items-center gap-1.5 ${tk.running ? 'text-amber-300' : ''}">
+                    <i data-lucide="timer" class="w-4 h-4" style="color: var(--accent);"></i>
+                    <span data-timer-display="${tk.id}">${formatTimer(tk.remainingSec)}</span>
+                    <span class="text-[10px] font-normal opacity-60">/ ${tk.durationMin} ${t('minUnit')}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <button data-timer-toggle="${tk.id}" class="px-2 py-1 rounded-lg text-[11px] font-semibold ${tk.running ? 'bg-amber-500/25 text-amber-200' : 'accent-pill'}">${tk.running ? t('timerPause') : t('timerStart')}</button>
+                    <button data-timer-reset="${tk.id}" class="p-1 rounded-lg card"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>
+                  </div>
+                </div>
+                <div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div data-timer-bar="${tk.id}" class="h-full transition-all duration-300" style="width:${pct}%; background: var(--accent);"></div></div>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="font-mono opacity-75">${tk.timeSlot ? '🕒 ' + escapeHtml(tk.timeSlot) : ''}</span>
+                <div class="flex items-center gap-1">
+                  <button data-edit-task="${tk.id}" class="px-2.5 py-1 rounded-lg card flex items-center gap-1"><i data-lucide="pencil" class="w-3 h-3"></i> ${t('edit')}</button>
+                  ${isDir ? `<button data-delete-task="${tk.id}" class="px-2 py-1 rounded-lg card text-red-400 hover:bg-red-500/20"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}</div>`;
+    }
+
+    function bindTaskInteractions(container, folder) {
+      container.querySelectorAll('[data-filter-target]').forEach(el => {
+        el.addEventListener('click', () => { state.taskFilterMemberId = el.dataset.filterTarget; renderTasksTab(container, folder); if (window.lucide) lucide.createIcons(); });
+        if (el.dataset.dropMember || el.dataset.dropType) {
+          el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('drop-target-active'); });
+          el.addEventListener('dragleave', () => el.classList.remove('drop-target-active'));
+          el.addEventListener('drop', (e) => {
+            e.preventDefault(); el.classList.remove('drop-target-active');
+            const tid = e.dataTransfer.getData('text/plain') || dragTaskId;
+            const tk = folder.tasks.find(x => x.id === tid);
+            if (!tk) return;
+            if (el.dataset.dropMember) { tk.type = 'personal'; tk.assigneeId = el.dataset.dropMember; }
+            else if (el.dataset.dropType === 'team') { tk.type = 'team'; tk.assigneeId = ''; }
+            else if (el.dataset.dropType === 'rest') { tk.type = 'rest'; tk.assigneeId = ''; }
+            saveState(); renderAll(); showToast(t('toastSaved'));
+          });
+        }
+      });
+      container.querySelectorAll('[data-drag-task]').forEach(card => card.addEventListener('dragstart', (e) => { dragTaskId = card.dataset.dragTask; e.dataTransfer.setData('text/plain', dragTaskId); }));
+      container.querySelectorAll('[data-add-task-ms]').forEach(btn => btn.addEventListener('click', () => openTaskModal(null, btn.dataset.addTaskMs)));
+      container.querySelectorAll('[data-cycle-status]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tk = folder.tasks.find(x => x.id === btn.dataset.cycleStatus);
+          if (!tk) return;
+          const order = ['todo', 'in_progress', 'done'];
+          tk.status = order[(order.indexOf(tk.status) + 1) % order.length];
+          if (tk.status === 'done') tk.running = false;
+          saveState(); renderAll();
+        });
+      });
+      container.querySelectorAll('[data-quick-assign]').forEach(sel => {
+        sel.addEventListener('change', () => {
+          const tk = folder.tasks.find(x => x.id === sel.dataset.quickAssign);
+          if (!tk) return;
+          const val = sel.value;
+          if (val === '__team') { tk.type = 'team'; tk.assigneeId = ''; }
+          else if (val === '__rest') { tk.type = 'rest'; tk.assigneeId = ''; }
+          else { tk.type = 'personal'; tk.assigneeId = val; }
+          saveState(); renderAll();
+        });
+      });
+      container.querySelectorAll('[data-timer-toggle]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tk = folder.tasks.find(x => x.id === btn.dataset.timerToggle);
+          if (!tk) return;
+          if (!tk.running && tk.remainingSec <= 0) tk.remainingSec = (tk.durationMin || 30) * 60;
+          tk.running = !tk.running;
+          if (tk.running && tk.status === 'todo') tk.status = 'in_progress';
+          saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons();
+        });
+      });
+      container.querySelectorAll('[data-timer-reset]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tk = folder.tasks.find(x => x.id === btn.dataset.timerReset);
+          if (!tk) return;
+          tk.running = false; tk.remainingSec = (tk.durationMin || 30) * 60;
+          saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons();
+        });
+      });
+      container.querySelectorAll('[data-edit-task]').forEach(btn => btn.addEventListener('click', () => openTaskModal(btn.dataset.editTask, null)));
+      container.querySelectorAll('[data-delete-task]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tk = folder.tasks.find(x => x.id === btn.dataset.deleteTask);
+          if (!tk) return;
+          confirmDelete(`Удалить задачу «${tk.title}»?`, () => { folder.tasks = folder.tasks.filter(x => x.id !== tk.id); saveState(); renderAll(); });
+        });
+      });
+    }
+
+    function openTaskModal(taskId, presetMilestoneId) {
+      const folder = getActiveFolder();
+      const existing = taskId ? folder.tasks.find(x => x.id === taskId) : null;
+      const sortedMembers = [...folder.members].sort((a, b) => a.order - b.order);
+      const activeMsId = existing ? existing.milestoneId : (presetMilestoneId || '');
+
+      openModal(`
+        <form id="taskForm" class="space-y-3.5">
+          <h3 class="font-bold text-base">${existing ? t('taskModalTitleEdit') : t('taskModalTitleAdd')}</h3>
+          <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskTitleLabel')} *</label><input id="tkTitle" required class="w-full" value="${escapeHtml(existing ? existing.title : '')}" /></div>
+          <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskDescLabel')}</label><textarea id="tkDesc" rows="3" class="w-full">${escapeHtml(existing ? existing.description : '')}</textarea></div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskTypeLabel')}</label><select id="tkType" class="w-full"><option value="personal" ${(existing ? existing.type : 'personal') === 'personal' ? 'selected' : ''}>👤 ${t('typePersonal')}</option><option value="team" ${existing && existing.type === 'team' ? 'selected' : ''}>🤝 ${t('typeTeam')}</option><option value="rest" ${existing && existing.type === 'rest' ? 'selected' : ''}>☕ ${t('typeRest')}</option></select></div>
+            <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskAssigneeLabel')}</label><select id="tkAssignee" class="w-full"><option value="">${t('unassigned')}</option>${sortedMembers.map(m => `<option value="${m.id}" ${existing && existing.assigneeId === m.id ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('')}</select></div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskStatusLabel')}</label><select id="tkStatus" class="w-full"><option value="todo" ${(existing ? existing.status : 'todo') === 'todo' ? 'selected' : ''}>${t('statusTodo')}</option><option value="in_progress" ${existing && existing.status === 'in_progress' ? 'selected' : ''}>${t('statusProgress')}</option><option value="done" ${existing && existing.status === 'done' ? 'selected' : ''}>${t('statusDone')}</option></select></div>
+            <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskDurationLabel')}</label><input id="tkDuration" type="number" min="1" max="1440" class="w-full" value="${existing ? existing.durationMin : 45}" /></div>
+            <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskTimeSlotLabel')}</label><input id="tkSlot" class="w-full" value="${escapeHtml(existing ? existing.timeSlot : '')}" placeholder="10:00 - 11:00" /></div>
+          </div>
+          <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskMilestoneLabel')}</label><select id="tkMilestone" class="w-full"><option value="">${t('noMilestone')}</option>${folder.milestones.map(ms => `<option value="${ms.id}" ${activeMsId === ms.id ? 'selected' : ''}>🚩 ${escapeHtml(ms.title)}</option>`).join('')}</select></div>
+          <div class="space-y-1.5 pt-1">
+            <label class="flex items-center gap-2 text-xs cursor-pointer"><input id="tkInToday" type="checkbox" ${(existing ? existing.isToday !== false : true) ? 'checked' : ''} /><span>${t('taskInTodayLabel')}</span></label>
+            <label class="flex items-center gap-2 text-xs cursor-pointer"><input id="tkOnRoadmap" type="checkbox" ${(existing ? existing.onRoadmap : true) ? 'checked' : ''} /><span>${t('taskShowRoadmapLabel')}</span></label>
+          </div>
+          <div class="flex justify-end gap-2 pt-3 border-t" style="border-color: var(--border-color);"><button type="button" id="cancelTaskBtn" class="px-4 py-2 rounded-lg card text-xs">${t('cancelBtn')}</button><button type="submit" class="btn-accent px-4 py-2 rounded-lg text-xs font-semibold">${t('saveBtn')}</button></div>
+        </form>
+      `);
+      document.getElementById('cancelTaskBtn').addEventListener('click', closeModal);
+      document.getElementById('taskForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const dur = Math.max(1, Number(document.getElementById('tkDuration').value) || 30);
+        const type = document.getElementById('tkType').value;
+        const data = {
+          id: existing ? existing.id : uid('t'),
+          title: document.getElementById('tkTitle').value.trim(),
+          description: document.getElementById('tkDesc').value.trim(),
+          type, assigneeId: type === 'personal' ? document.getElementById('tkAssignee').value : '',
+          status: document.getElementById('tkStatus').value, durationMin: dur,
+          remainingSec: existing && existing.durationMin === dur ? existing.remainingSec : dur * 60,
+          running: existing ? existing.running : false, timeSlot: document.getElementById('tkSlot').value.trim(),
+          milestoneId: document.getElementById('tkMilestone').value, onRoadmap: document.getElementById('tkOnRoadmap').checked,
+          isToday: document.getElementById('tkInToday').checked
+        };
+        if (existing) Object.assign(existing, data);
+        else folder.tasks.push(data);
+        saveState(); closeModal(); renderAll(); showToast(t('toastSaved'));
+      });
+    }
+
+    /* =========================================================================
+       11. TAB 3: ROADMAP
+    ========================================================================= */
+    function renderRoadmapTab(container, folder) {
+      const theme = folder.theme;
+      const isDir = state.roleMode === 'director';
+      const roadmapTasks = folder.tasks.filter(tk => tk.onRoadmap);
+      const completedMs = folder.milestones.filter(m => m.completed).length;
+      const totalMs = folder.milestones.length;
+      const msPct = totalMs ? Math.round((completedMs / totalMs) * 100) : 0;
+      const fallbackMsId = (folder.milestones.find(m => !m.completed) || folder.milestones[0] || {}).id || '';
+
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div><h2 class="font-bold text-base sm:text-lg">${t('roadmapTitle')}</h2><p class="text-xs" style="color: var(--text-muted);">${t('clickHint')}</p></div>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-2 panel px-3 py-1.5 rounded-xl text-xs"><span style="color: var(--text-muted);">${t('zoomLabel')}:</span><input id="roadmapZoomRange" type="range" min="0.75" max="1.35" step="0.05" value="${state.roadmapZoom}" class="w-24 p-0 border-0" /><span class="font-mono w-10">${Math.round(state.roadmapZoom * 100)}%</span></div>
+              <button id="addTaskFromMapBtn" class="px-3.5 py-2 rounded-xl card text-xs font-semibold flex items-center gap-1.5"><i data-lucide="plus-circle" class="w-4 h-4" style="color: var(--accent);"></i><span>${t('addTaskOnMap')}</span></button>
+              <button id="addMilestoneBtn" class="btn-accent px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="flag" class="w-4 h-4"></i><span>${t('addMilestone')}</span></button>
+            </div>
+          </div>
+
+          <div class="panel rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3 flex-1 min-w-[220px]">
+              <span class="text-xs font-semibold whitespace-nowrap">🚩 ${completedMs} / ${totalMs} (${msPct}%)</span>
+              <div class="flex-1 h-2.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full rounded-full transition-all duration-300" style="width:${msPct}%; background: linear-gradient(90deg, var(--accent), var(--accent-2));"></div></div>
+            </div>
+            <span class="text-xs" style="color: var(--text-muted);">🗺️ ${roadmapTasks.length} ${t('tasksShort')}</span>
+          </div>
+
+          <div class="panel rounded-2xl roadmap-viewport">
+            <div class="roadmap-track" style="transform: scale(${state.roadmapZoom});">
+              <div class="roadmap-spine"></div>
+              <div class="roadmap-node-col" style="min-width: 135px;">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center border-2 shadow-lg" style="background: var(--bg-card); border-color: var(--accent); box-shadow: 0 0 18px var(--glow);">${getThemeFlagSVG(theme.flagIcon, theme.palette.accent, 24)}</div>
+                <div class="mt-2 text-xs font-black tracking-widest uppercase">${t('startFlag')}</div>
+              </div>
+              ${folder.milestones.map((ms, idx) => {
+                const linkedTasks = roadmapTasks.filter(tk => (tk.milestoneId || fallbackMsId) === ms.id);
+                const topTasks = linkedTasks.filter((_, i) => i % 2 === 0);
+                const bottomTasks = linkedTasks.filter((_, i) => i % 2 === 1);
+                return `
+                  <div class="roadmap-node-col" style="min-width: ${Math.max(260, Math.max(topTasks.length, bottomTasks.length) * 168)}px;">
+                    ${topTasks.length ? `<div class="roadmap-branch-top">${topTasks.map(tk => renderBranchChip(tk, folder)).join('')}</div>` : ''}
+                    <div class="flex flex-col items-center">
+                      <div class="w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-transform hover:scale-110 relative cursor-pointer" data-inspect-milestone="${ms.id}" style="background: ${ms.completed ? 'var(--accent)' : 'var(--bg-card)'}; border-color: var(--accent); box-shadow: 0 0 20px var(--glow);">
+                        ${getThemeFlagSVG(theme.flagIcon, ms.completed ? '#ffffff' : theme.palette.accent, 26)}
+                        <span class="absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center bg-black border" style="border-color: var(--accent);">${idx + 1}</span>
+                      </div>
+                      <div class="mt-2 text-center max-w-[200px]">
+                        <div class="text-xs font-bold leading-tight cursor-pointer hover:underline" data-inspect-milestone="${ms.id}">${escapeHtml(ms.title)}</div>
+                        ${ms.targetDate ? `<div class="text-[10px] font-mono mt-0.5" style="color: var(--text-muted);">${escapeHtml(ms.targetDate)}</div>` : ''}
+                        <button type="button" data-quick-ms-task="${ms.id}" class="mt-1 text-[10px] px-2 py-0.5 rounded-md card opacity-85 hover:opacity-100">${t('addTaskToStage')}</button>
+                      </div>
+                    </div>
+                    ${bottomTasks.length ? `<div class="roadmap-branch-bottom">${bottomTasks.map(tk => renderBranchChip(tk, folder)).join('')}</div>` : ''}
+                  </div>
+                `;
+              }).join('')}
+              <div class="roadmap-node-col" style="min-width: 135px;">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center border-2 shadow-lg" style="background: var(--bg-card); border-color: var(--accent-2);"><i data-lucide="trophy" class="w-6 h-6" style="color: var(--accent-2);"></i></div>
+                <div class="mt-2 text-xs font-black tracking-widest uppercase">${t('finishFlag')}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('roadmapZoomRange').addEventListener('input', (e) => { state.roadmapZoom = Number(e.target.value); renderRoadmapTab(container, folder); if (window.lucide) lucide.createIcons(); });
+      document.getElementById('addMilestoneBtn').addEventListener('click', () => openMilestoneModal(null));
+      document.getElementById('addTaskFromMapBtn').addEventListener('click', () => openTaskModal(null, fallbackMsId));
+      container.querySelectorAll('[data-quick-ms-task]').forEach(btn => btn.addEventListener('click', () => openTaskModal(null, btn.dataset.quickMsTask)));
+      container.querySelectorAll('[data-inspect-task]').forEach(chip => chip.addEventListener('click', () => openTaskZoomModal(chip.dataset.inspectTask)));
+      container.querySelectorAll('[data-inspect-milestone]').forEach(node => node.addEventListener('click', () => openMilestoneInspectModal(node.dataset.inspectMilestone, isDir)));
+    }
+
+    function renderBranchChip(tk, folder) {
+      const mem = folder.members.find(m => m.id === tk.assigneeId);
+      const dot = tk.status === 'done' ? '#10b981' : tk.status === 'in_progress' ? '#f59e0b' : '#94a3b8';
+      return `<button type="button" class="branch-chip" data-inspect-task="${tk.id}"><div class="flex items-center gap-1 mb-0.5"><span class="w-2 h-2 rounded-full shrink-0" style="background:${dot}"></span><span class="font-semibold truncate">${escapeHtml(tk.title)}</span></div><div class="text-[10px] truncate" style="color: var(--text-muted);">${tk.type === 'team' ? `🤝 ${t('typeTeam')}` : (mem ? mem.name : t('unassigned'))}</div></button>`;
+    }
+
+    function openTaskZoomModal(taskId) {
+      const folder = getActiveFolder();
+      const tk = folder.tasks.find(x => x.id === taskId);
+      if (!tk) return;
+      const mem = folder.members.find(m => m.id === tk.assigneeId);
+      const ms = folder.milestones.find(m => m.id === tk.milestoneId);
+      openModal(`
+        <div class="space-y-4">
+          <div class="flex items-start justify-between gap-3">
+            <div><span class="text-[11px] uppercase tracking-wider px-2 py-0.5 rounded accent-pill">${tk.type === 'team' ? t('typeTeam') : tk.type === 'rest' ? t('typeRest') : t('typePersonal')}</span><h3 class="font-bold text-lg mt-2">${escapeHtml(tk.title)}</h3></div>
+            <button id="zoomEditTaskBtn" class="px-3 py-1.5 rounded-lg card text-xs flex items-center gap-1"><i data-lucide="pencil" class="w-3.5 h-3.5"></i> ${t('edit')}</button>
+          </div>
+          <p class="text-sm leading-relaxed p-3 rounded-xl bg-black/25">${escapeHtml(tk.description || '—')}</p>
+          <div class="grid grid-cols-2 gap-2.5 text-xs">
+            <div class="card p-2.5 rounded-xl"><div style="color: var(--text-muted);">${t('taskAssigneeLabel')}</div><div class="font-semibold mt-0.5">${mem ? escapeHtml(mem.name) : (tk.type === 'team' ? t('typeTeam') : t('unassigned'))}</div></div>
+            <div class="card p-2.5 rounded-xl"><div style="color: var(--text-muted);">${t('taskMilestoneLabel')}</div><div class="font-semibold mt-0.5">${ms ? '🚩 ' + escapeHtml(ms.title) : '—'}</div></div>
+          </div>
+          <div class="flex items-center justify-between gap-2 pt-2 border-t" style="border-color: var(--border-color);">
+            <button id="zoomToggleDoneBtn" class="btn-accent px-4 py-2 rounded-xl text-xs font-semibold">${tk.status === 'done' ? '↩ ' + t('statusProgress') : '✓ ' + t('statusDone')}</button>
+            <button id="zoomCloseBtn" class="px-4 py-2 rounded-xl card text-xs">${t('closeBtn')}</button>
+          </div>
+        </div>
+      `);
+      document.getElementById('zoomCloseBtn').addEventListener('click', closeModal);
+      document.getElementById('zoomEditTaskBtn').addEventListener('click', () => openTaskModal(tk.id, null));
+      document.getElementById('zoomToggleDoneBtn').addEventListener('click', () => {
+        tk.status = tk.status === 'done' ? 'in_progress' : 'done';
+        if (tk.status === 'done') tk.running = false;
+        saveState(); closeModal(); renderAll();
+      });
+    }
+
+    function openMilestoneInspectModal(msId, isDir) {
+      const folder = getActiveFolder();
+      const ms = folder.milestones.find(x => x.id === msId);
+      if (!ms) return;
+      const linked = folder.tasks.filter(tk => tk.milestoneId === ms.id);
+      openModal(`
+        <div class="space-y-4">
+          <div class="flex items-start justify-between gap-3">
+            <div><span class="text-[11px] px-2 py-0.5 rounded ${ms.completed ? 'bg-emerald-500/20 text-emerald-300' : 'accent-pill'}">${ms.completed ? '✅ ' + t('milestoneDoneLabel') : '🚩 В работе'}</span><h3 class="font-bold text-lg mt-2">${escapeHtml(ms.title)}</h3>${ms.targetDate ? `<div class="text-xs font-mono mt-0.5" style="color: var(--text-muted);">${escapeHtml(ms.targetDate)}</div>` : ''}</div>
+            <div class="flex gap-1.5">
+              <button id="addMsTaskInsideBtn" class="px-2.5 py-1.5 rounded-lg card text-xs font-semibold">${t('addTaskToStage')}</button>
+              <button id="editMsBtn" class="p-2 rounded-lg card"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+              ${isDir ? `<button id="delMsBtn" class="p-2 rounded-lg card text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
+            </div>
+          </div>
+          <p class="text-sm p-3 rounded-xl bg-black/25">${escapeHtml(ms.description || '—')}</p>
+          <div class="space-y-1.5"><div class="text-xs font-semibold" style="color: var(--text-muted);">Связанные задачи (${linked.length}):</div>${linked.length === 0 ? `<div class="text-xs opacity-60">—</div>` : linked.map(tk => `<div class="card px-3 py-2 rounded-lg text-xs">${tk.status === 'done' ? '✅' : '⏳'} ${escapeHtml(tk.title)}</div>`).join('')}</div>
+          <div class="flex items-center justify-between pt-2 border-t" style="border-color: var(--border-color);">
+            <button id="toggleMsDoneBtn" class="btn-accent px-4 py-2 rounded-xl text-xs font-semibold">${ms.completed ? 'Снять отметку' : '✓ ' + t('milestoneDoneLabel')}</button>
+            <button id="closeMsInspectBtn" class="px-4 py-2 rounded-xl card text-xs">${t('closeBtn')}</button>
+          </div>
+        </div>
+      `);
+      document.getElementById('closeMsInspectBtn').addEventListener('click', closeModal);
+      document.getElementById('addMsTaskInsideBtn').addEventListener('click', () => openTaskModal(null, ms.id));
+      document.getElementById('editMsBtn').addEventListener('click', () => openMilestoneModal(ms.id));
+      document.getElementById('toggleMsDoneBtn').addEventListener('click', () => { ms.completed = !ms.completed; saveState(); closeModal(); renderAll(); });
+      const delBtn = document.getElementById('delMsBtn');
+      if (delBtn) delBtn.addEventListener('click', () => confirmDelete(`Удалить веху «${ms.title}»?`, () => { folder.milestones = folder.milestones.filter(x => x.id !== ms.id); folder.tasks.forEach(tk => { if (tk.milestoneId === ms.id) tk.milestoneId = ''; }); saveState(); renderAll(); }));
+    }
+
+    function openMilestoneModal(msId) {
+      const folder = getActiveFolder();
+      const existing = msId ? folder.milestones.find(x => x.id === msId) : null;
+      openModal(`
+        <form id="msForm" class="space-y-3.5">
+          <h3 class="font-bold text-base">${existing ? t('milestoneModalTitleEdit') : t('milestoneModalTitleAdd')}</h3>
+          <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('milestoneTitleLabel')} *</label><input id="msTitle" required class="w-full" value="${escapeHtml(existing ? existing.title : '')}" /></div>
+          <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('milestoneDescLabel')}</label><textarea id="msDesc" rows="3" class="w-full">${escapeHtml(existing ? existing.description : '')}</textarea></div>
+          <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('milestoneDateLabel')}</label><input id="msDate" type="date" class="w-full" value="${escapeHtml(existing ? existing.targetDate : '')}" /></div>
+          <label class="flex items-center gap-2 text-xs cursor-pointer"><input id="msDone" type="checkbox" ${existing && existing.completed ? 'checked' : ''} /><span>${t('milestoneDoneLabel')}</span></label>
+          <div class="flex justify-end gap-2 pt-3 border-t" style="border-color: var(--border-color);"><button type="button" id="cancelMsBtn" class="px-4 py-2 rounded-lg card text-xs">${t('cancelBtn')}</button><button type="submit" class="btn-accent px-4 py-2 rounded-lg text-xs font-semibold">${t('saveBtn')}</button></div>
+        </form>
+      `);
+      document.getElementById('cancelMsBtn').addEventListener('click', closeModal);
+      document.getElementById('msForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const data = { id: existing ? existing.id : uid('ms'), title: document.getElementById('msTitle').value.trim(), description: document.getElementById('msDesc').value.trim(), targetDate: document.getElementById('msDate').value, completed: document.getElementById('msDone').checked };
+        if (existing) Object.assign(existing, data); else folder.milestones.push(data);
+        saveState(); closeModal(); renderAll(); showToast(t('toastSaved'));
+      });
+    }
+
+    /* =========================================================================
+       12. TAB 4: DIRECTOR HUB
+    ========================================================================= */
+    function renderDirectorTab(container, folder) {
+      const isDir = state.roleMode === 'director';
+      const totalTasks = folder.tasks.length;
+      const doneTasks = folder.tasks.filter(x => x.status === 'done').length;
+      const todayCount = folder.tasks.filter(x => x.isToday !== false).length;
+      const pct = totalTasks ? Math.round((doneTasks / totalTasks) * 100) : 0;
+      const activeTimers = folder.tasks.filter(x => x.running).length;
+      const doneMs = folder.milestones.filter(x => x.completed).length;
+
+      container.innerHTML = `
+        <div class="space-y-5">
+          <h2 class="font-bold text-base sm:text-lg">${t('directorTitle')}</h2>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="panel rounded-2xl p-4"><div class="text-xs" style="color: var(--text-muted);">${t('kpiProgress')}</div><div class="text-2xl font-black mt-1">${pct}%</div><div class="text-[11px] mt-1" style="color: var(--text-muted);">${doneTasks} / ${totalTasks}</div></div>
+            <div class="panel rounded-2xl p-4"><div class="text-xs" style="color: var(--text-muted);">${t('kpiToday')}</div><div class="text-2xl font-black mt-1">${todayCount}</div><div class="text-[11px] mt-1" style="color: var(--text-muted);">🕒 В расписании</div></div>
+            <div class="panel rounded-2xl p-4"><div class="text-xs" style="color: var(--text-muted);">${t('kpiMilestones')}</div><div class="text-2xl font-black mt-1">${doneMs} / ${folder.milestones.length}</div><div class="text-[11px] mt-1" style="color: var(--text-muted);">🚩 Вехи</div></div>
+            <div class="panel rounded-2xl p-4"><div class="text-xs" style="color: var(--text-muted);">${t('kpiActiveTimers')}</div><div class="text-2xl font-black mt-1 ${activeTimers > 0 ? 'text-amber-400' : ''}">${activeTimers}</div><div class="text-[11px] mt-1" style="color: var(--text-muted);">⏱ Активны</div></div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="panel rounded-2xl p-4 space-y-3">
+              <h3 class="font-bold text-sm">${t('workloadTitle')}</h3>
+              <div class="space-y-2.5">${folder.members.length === 0 ? `<div class="text-xs opacity-60">${t('noMembers')}</div>` : folder.members.map(m => {
+                const mTasks = folder.tasks.filter(x => x.assigneeId === m.id);
+                const mDone = mTasks.filter(x => x.status === 'done').length;
+                const mPct = mTasks.length ? Math.round((mDone / mTasks.length) * 100) : 0;
+                return `<div class="card rounded-xl p-3 space-y-1.5"><div class="flex items-center justify-between text-xs"><span class="font-semibold">${escapeHtml(m.name)}</span><span class="font-mono">${mDone}/${mTasks.length} (${mPct}%)</span></div><div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full rounded-full" style="width:${mPct}%; background: var(--accent);"></div></div></div>`;
+              }).join('')}</div>
+            </div>
+            <div class="panel rounded-2xl p-4 space-y-3">
+              <div class="flex items-center justify-between"><h3 class="font-bold text-sm">${t('decisionsTitle')}</h3><button id="addDecisionBtn" class="btn-accent px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i> ${t('addDecision')}</button></div>
+              <div class="space-y-2">${(folder.decisions || []).length === 0 ? `<div class="text-xs py-6 text-center" style="color: var(--text-muted);">${t('noDecisions')}</div>` : (folder.decisions || []).map(d => {
+                const stMap = { approved: { label: t('decApproved'), cls: 'bg-emerald-500/20 text-emerald-300' }, review: { label: t('decReview'), cls: 'bg-amber-500/20 text-amber-300' }, risk: { label: t('decRisk'), cls: 'bg-red-500/20 text-red-300' } };
+                const st = stMap[d.status] || stMap.approved;
+                return `<div class="card rounded-xl p-3 space-y-1"><div class="flex items-start justify-between gap-2"><div class="font-semibold text-xs">${escapeHtml(d.title)}</div><div class="flex items-center gap-1.5 shrink-0"><span class="text-[10px] px-2 py-0.5 rounded ${st.cls}">${st.label}</span>${isDir ? `<button data-del-decision="${d.id}" class="text-red-400"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}</div></div><div class="text-xs" style="color: var(--text-muted);">${escapeHtml(d.choice)}</div></div>`;
+              }).join('')}</div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById('addDecisionBtn').addEventListener('click', openDecisionModal);
+      container.querySelectorAll('[data-del-decision]').forEach(btn => btn.addEventListener('click', () => confirmDelete('Удалить запись решения?', () => { folder.decisions = (folder.decisions || []).filter(x => x.id !== btn.dataset.delDecision); saveState(); renderAll(); })));
+    }
+
+    function openDecisionModal() {
+      const folder = getActiveFolder();
+      openModal(`
+        <form id="decForm" class="space-y-3.5">
+          <h3 class="font-bold text-base">${t('addDecision')}</h3>
+          <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('decisionTitleLabel')} *</label><input id="decTitle" required class="w-full" /></div>
+          <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('decisionChoiceLabel')} *</label><textarea id="decChoice" required rows="3" class="w-full"></textarea></div>
+          <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('decisionStatusLabel')}</label><select id="decStatus" class="w-full"><option value="approved">${t('decApproved')}</option><option value="review">${t('decReview')}</option><option value="risk">${t('decRisk')}</option></select></div>
+          <div class="flex justify-end gap-2 pt-2"><button type="button" id="cancelDecBtn" class="px-4 py-2 rounded-lg card text-xs">${t('cancelBtn')}</button><button type="submit" class="btn-accent px-4 py-2 rounded-lg text-xs font-semibold">${t('saveBtn')}</button></div>
+        </form>
+      `);
+      document.getElementById('cancelDecBtn').addEventListener('click', closeModal);
+      document.getElementById('decForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!folder.decisions) folder.decisions = [];
+        folder.decisions.unshift({ id: uid('dec'), title: document.getElementById('decTitle').value.trim(), choice: document.getElementById('decChoice').value.trim(), status: document.getElementById('decStatus').value, date: new Date().toISOString().slice(0, 10) });
+        saveState(); closeModal(); renderAll(); showToast(t('toastSaved'));
+      });
+    }
+
+    /* =========================================================================
+       13. THEME STUDIO MODAL (AI PROMPT + MANUAL FINE-TUNING)
+    ========================================================================= */
+    function openThemeModal() {
+      const folder = getActiveFolder();
+      if (!folder) return;
+      const th = folder.theme;
+      openModal(`
+        <form id="themeForm" class="space-y-4">
+          <h3 class="font-bold text-base">${t('themeModalTitle')}</h3>
+          <div>
+            <label class="block text-xs mb-1" style="color: var(--text-muted);">${t('themePromptLabel')}</label>
+            <input id="themePromptInput" required class="w-full" value="${escapeHtml(th.prompt)}" placeholder="${t('folderThemePlaceholder')}" />
+          </div>
+          <div>
+            <div class="text-xs mb-1.5" style="color: var(--text-muted);">${t('presetsLabel')}</div>
+            <div class="flex flex-wrap gap-1.5">
+              ${THEME_PRESETS.map(p => {
+                const label = state.lang === 'ru' ? p.ru : p.en;
+                const prev = analyzeAndGenerateTheme(label);
+                return `<button type="button" data-theme-preset="${escapeHtml(label)}" class="px-2.5 py-1 rounded-lg card text-[11px] flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:${prev.palette.accent}"></span>${escapeHtml(label)}</button>`;
+              }).join('')}
+            </div>
+          </div>
+
+          <div class="pt-3 border-t space-y-2.5" style="border-color: var(--border-color);">
+            <div class="text-xs font-semibold" style="color: var(--text-muted);">${t('manualTuneLabel')}</div>
+            <div class="grid grid-cols-2 gap-2.5 text-xs">
+              <div>
+                <label class="block text-[11px] mb-1" style="color: var(--text-muted);">${t('particlesLabel')}</label>
+                <select id="tuneParticles" class="w-full">
+                  <option value="auto">Авто по теме</option>
+                  <option value="embers">Искры / Пепел</option>
+                  <option value="feathers">Тёмные перья</option>
+                  <option value="sakura">Лепестки сакуры</option>
+                  <option value="rain">Дождь</option>
+                  <option value="dust">Древняя пыль</option>
+                  <option value="smoke">Дым / Пар</option>
+                  <option value="snow">Снег</option>
+                  <option value="bubbles">Пузыри</option>
+                  <option value="leaves">Листья</option>
+                  <option value="stars">Звёзды</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] mb-1" style="color: var(--text-muted);">${t('filterLabel')}</label>
+                <select id="tuneFilter" class="w-full">
+                  <option value="auto">Авто по теме</option>
+                  <option value="vhs">VHS плёнка</option>
+                  <option value="grain">Кино-виньетка</option>
+                  <option value="grid">Техно-сетка</option>
+                  <option value="none">Без фильтра</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2 border-t" style="border-color: var(--border-color);">
+            <button type="button" id="cancelThemeBtn" class="px-4 py-2 rounded-lg card text-xs">${t('cancelBtn')}</button>
+            <button type="submit" class="btn-accent px-4 py-2 rounded-lg text-xs font-semibold">${t('applyThemeBtn')}</button>
+          </div>
+        </form>
+      `);
+      document.querySelectorAll('[data-theme-preset]').forEach(b => b.addEventListener('click', () => { document.getElementById('themePromptInput').value = b.dataset.themePreset; }));
+      document.getElementById('cancelThemeBtn').addEventListener('click', closeModal);
+      document.getElementById('themeForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const prompt = document.getElementById('themePromptInput').value.trim();
+        const gen = analyzeAndGenerateTheme(prompt);
+        const pOverride = document.getElementById('tuneParticles').value;
+        const fOverride = document.getElementById('tuneFilter').value;
+        if (pOverride !== 'auto') gen.particleType = pOverride;
+        if (fOverride !== 'auto') gen.overlay = fOverride;
+        folder.theme = gen;
+        saveState(); closeModal(); renderAll();
+        showToast(`${t('toastThemeApplied')} ${prompt}`);
+      });
+    }
+
+    /* =========================================================================
+       14. SHARE / BACKUP / LOCAL AUTO-FILE SYNC / GUIDE MODAL
+    ========================================================================= */
+    function openShareModal() {
+      const isDir = state.roleMode === 'director';
+      openModal(`
+        <div class="space-y-4">
+          <h3 class="font-bold text-base">${t('shareModalTitle')}</h3>
+          <p class="text-xs leading-relaxed" style="color: var(--text-muted);">${t('shareIntro')}</p>
+          <div class="flex flex-wrap gap-2">
+            <button id="linkDiskBtn" class="btn-accent px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+              <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i> ${t('linkDiskBtn')}
+            </button>
+            <button id="exportJsonBtn" class="px-3.5 py-2 rounded-xl card text-xs font-semibold flex items-center gap-1.5">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> ${t('exportJsonBtn')}
+            </button>
+            <label class="px-3.5 py-2 rounded-xl card text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+              <i data-lucide="upload" class="w-3.5 h-3.5"></i> ${t('importJsonBtn')}
+              <input id="importJsonInput" type="file" accept=".json,application/json" class="hidden" />
+            </label>
+            <button id="copySnapLinkBtn" class="px-3.5 py-2 rounded-xl card text-xs font-semibold flex items-center gap-1.5">
+              <i data-lucide="link" class="w-3.5 h-3.5"></i> ${t('copyLinkBtn')}
+            </button>
+          </div>
+          <div class="pt-3 border-t space-y-2.5" style="border-color: var(--border-color);">
+            <div class="font-bold text-xs">${t('pinSectionTitle')}</div>
+            <p class="text-[11px]" style="color: var(--text-muted);">${t('pinDesc')}</p>
+            ${isDir ? `
+              <div class="flex gap-2">
+                <input id="pinSetInput" type="password" maxlength="8" class="flex-1" value="${escapeHtml(state.directorPin)}" placeholder="${t('pinPlaceholder')}" />
+                <button id="savePinBtn" class="px-3 py-1.5 rounded-lg card text-xs font-semibold">${t('setPinBtn')}</button>
+              </div>
+              <button id="switchModeBtn" class="w-full py-2 rounded-xl card text-xs font-semibold text-amber-300">🔒 ${t('switchToMember')}</button>
+            ` : `
+              <button id="switchModeBtn" class="w-full py-2 rounded-xl btn-accent text-xs font-semibold">🔓 ${t('switchToDirector')}</button>
+            `}
+          </div>
+          <div class="flex justify-end pt-1"><button id="closeShareBtn" class="px-4 py-1.5 rounded-lg card text-xs">${t('closeBtn')}</button></div>
+        </div>
+      `);
+
+      document.getElementById('closeShareBtn').addEventListener('click', closeModal);
+      document.getElementById('linkDiskBtn').addEventListener('click', async () => {
+        if (!window.showSaveFilePicker) { showToast(t('toastDiskUnsupported')); return; }
+        try {
+          linkedFileHandle = await window.showSaveFilePicker({
+            suggestedName: 'studio-command-hub-save.json',
+            types: [{ description: 'JSON Save', accept: { 'application/json': ['.json'] } }]
+          });
+          await writeToLinkedDiskFile(state);
+          saveState();
+          showToast(t('toastDiskLinked'));
+        } catch (e) {}
+      });
+
+      document.getElementById('copySnapLinkBtn').addEventListener('click', () => {
+        try {
+          const clone = JSON.parse(JSON.stringify(state));
+          clone.folders.forEach(f => f.members.forEach(m => { if (m.photo && m.photo.length > 2000) m.photo = ''; }));
+          const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(clone))));
+          if (encoded.length > 12000) { showToast(t('toastLinkTooLarge')); return; }
+          const url = window.location.href.split('#')[0] + '#snap=' + encoded;
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => showToast(t('toastLinkCopied'))).catch(() => fallbackCopy(url));
+          else fallbackCopy(url);
+        } catch (e) { showToast(t('toastLinkTooLarge')); }
+      });
+
+      document.getElementById('exportJsonBtn').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `studio-command-hub-backup-${new Date().toISOString().slice(0,10)}.json`;
+        a.click(); URL.revokeObjectURL(a.href);
+      });
+
+      document.getElementById('importJsonInput').addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(reader.result);
+            if (parsed && Array.isArray(parsed.folders)) { state = parsed; saveState(); closeModal(); renderAll(); showToast(t('toastImported')); }
+          } catch (err) {}
+        };
+        reader.readAsText(file);
+      });
+
+      const savePinBtn = document.getElementById('savePinBtn');
+      if (savePinBtn) savePinBtn.addEventListener('click', () => { state.directorPin = document.getElementById('pinSetInput').value.trim(); saveState(); showToast(t('toastSaved')); });
+      document.getElementById('switchModeBtn').addEventListener('click', () => { closeModal(); toggleRoleMode(); });
+    }
+
+    function openGuideModal() {
+      openModal(`
+        <div class="space-y-3 text-xs leading-relaxed">
+          <h3 class="font-bold text-base">${t('guideTitle')}</h3>
+          <div class="card p-3 rounded-xl space-y-1">
+            <div class="font-bold">1. Папки и ИИ-оформление тем</div>
+            <p style="color: var(--text-muted);">На главном экране нажимайте «+», чтобы создавать отдельные папки для разных команд и игр. Впишите любую тему (например: «СССР город до нашей эры», «Апокалипсис в шкафах», «Самураи и сакура») — сайт создаст панораму на фоне, палитру, флаги и спецэффекты.</p>
+          </div>
+          <div class="card p-3 rounded-xl space-y-1">
+            <div class="font-bold">2. Команда (без ограничений)</div>
+            <p style="color: var(--text-muted);">Добавляйте сколько угодно участников: фото, очерёдность, сразу несколько ролей, уровень опыта и экстренный телефон. Ищите и фильтруйте по любым полям.</p>
+          </div>
+          <div class="card p-3 rounded-xl space-y-1">
+            <div class="font-bold">3. Задачи, Расписание дня и Дорожная карта</div>
+            <p style="color: var(--text-muted);">Перетаскивайте задачи прямо на карточки участников, запускайте таймеры со звуком, добавляйте «Отдых 30 мин». Задачи с галочкой «На карте» автоматически появляются на Линии прогресса, а клик по ветке увеличивает описание.</p>
+          </div>
+          <div class="card p-3 rounded-xl space-y-1">
+            <div class="font-bold">4. Вечное сохранение</div>
+            <p style="color: var(--text-muted);">Все данные пишутся в IndexedDB + localStorage. Если используете Chrome/Edge, нажмите «Сейв / Доступ → Привязать авто-файл на ПК», чтобы каждое изменение сохранялось прямо в файл на диске.</p>
+          </div>
+          <div class="flex justify-end pt-1"><button id="closeGuideBtn" class="btn-accent px-4 py-1.5 rounded-lg text-xs font-semibold">${t('closeBtn')}</button></div>
+        </div>
+      `);
+      document.getElementById('closeGuideBtn').addEventListener('click', closeModal);
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); showToast(t('toastLinkCopied')); } catch (e) {}
+      ta.remove();
+    }
+
+    function toggleRoleMode() {
+      if (state.roleMode === 'director') { state.roleMode = 'member'; saveState(); renderAll(); return; }
+      if (!state.directorPin) { state.roleMode = 'director'; saveState(); renderAll(); return; }
+      openModal(`
+        <form id="pinUnlockForm" class="space-y-3.5">
+          <h3 class="font-bold text-base">${t('enterPinPrompt')}</h3>
+          <input id="pinUnlockInput" type="password" required class="w-full" placeholder="****" />
+          <div class="flex justify-end gap-2"><button type="button" id="cancelPinBtn" class="px-4 py-2 rounded-lg card text-xs">${t('cancelBtn')}</button><button type="submit" class="btn-accent px-4 py-2 rounded-lg text-xs font-semibold">${t('switchToDirector')}</button></div>
+        </form>
+      `);
+      document.getElementById('cancelPinBtn').addEventListener('click', closeModal);
+      document.getElementById('pinUnlockForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (document.getElementById('pinUnlockInput').value.trim() === state.directorPin) { state.roleMode = 'director'; saveState(); closeModal(); renderAll(); }
+        else showToast(t('wrongPin'));
+      });
+    }
+
+    /* =========================================================================
+       15. BOOTSTRAP
+    ========================================================================= */
+    async function initApp() {
+      await loadStateAsync();
+
+      document.getElementById('backToHomeBtn').addEventListener('click', () => { state.view = 'home'; saveState(); renderAll(); });
+      document.getElementById('openThemeModalBtn').addEventListener('click', openThemeModal);
+      document.getElementById('openShareModalBtn').addEventListener('click', openShareModal);
+      document.getElementById('openGuideBtn').addEventListener('click', openGuideModal);
+      document.getElementById('toggleRoleLockBtn').addEventListener('click', toggleRoleMode);
+      document.getElementById('toggleMuteBtn').addEventListener('click', () => { state.muted = !state.muted; saveState(); renderAll(); });
+      document.getElementById('toggleLangBtn').addEventListener('click', () => { state.lang = state.lang === 'ru' ? 'en' : 'ru'; saveState(); renderAll(); });
+      document.getElementById('fxLevelSelect').addEventListener('change', (e) => { state.fxLevel = e.target.value; saveState(); renderAll(); });
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => { state.activeTab = btn.dataset.tab; saveState(); renderAll(); }));
+
+      window.addEventListener('mousemove', (e) => {
+        const glow = document.getElementById('cursorGlow');
+        if (glow && state && state.fxLevel !== 'off') {
+          glow.style.left = e.clientX + 'px';
+          glow.style.top = e.clientY + 'px';
+        }
+      });
+
+      window.addEventListener('resize', () => {
+        const folder = state.view === 'folder' ? getActiveFolder() : null;
+        initParticles((folder ? folder.theme : HUB_NEUTRAL_THEME).particleType, state.fxLevel);
+      });
+
+      renderAll();
+      startGlobalTimer();
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
