@@ -496,6 +496,14 @@
         tabDirector: 'Пульт и Награды',
         searchMemberPlaceholder: 'Поиск по имени, роли, опыту или телефону...',
         addMember: 'Добавить участника',
+        manageColsBtn: '+ Столбцы',
+        colsModalTitle: 'Дополнительные столбцы таблицы «Команда»',
+        colsModalDesc: 'Добавьте любые свои поля (например: Портфолио, Telegram, Сайт регистрации, Часовой пояс) — они сразу появятся в таблице и в форме участника.',
+        colNamePlaceholder: 'Название столбца (напр. Портфолио)',
+        colTypeText: 'Текст',
+        colTypeLink: 'Ссылка (URL)',
+        addColBtn: 'Добавить столбец',
+        customFieldsHeader: 'Дополнительные поля:',
         quickAddMemberHint: 'Без ограничений по количеству участников',
         orderCol: '№',
         photoCol: 'Фото',
@@ -511,7 +519,19 @@
         allLevels: 'Все уровни',
         addTask: 'Новая задача',
         addBreak: '+ Отдых 30 мин',
-        viewToday: 'План на сегодня',
+        viewToday: 'План по дням',
+        dayLabel: 'День',
+        newDayBtn: '+ Новый день',
+        allDaysOption: 'Все дни',
+        carryOverBtn: 'Перенести незавершённые →',
+        carryOverDone: 'Незавершённые задачи перенесены в',
+        carryOverNone: 'Все задачи этого дня уже выполнены!',
+        roadmapByMilestones: '🚩 По вехам',
+        roadmapByDays: '📅 По дням',
+        dayExpandTitle: 'Сводка дня',
+        dayMilestonesLabel: 'Главные этапы этого дня:',
+        addTaskToDay: '+ Задача в день',
+        taskDayLabel: 'День плана (День 1, День 2...)',
         viewAssign: 'По участникам',
         viewByMilestone: 'По вехам карты',
         membersStripTitle: 'Участники (нажмите для фильтра или перетащите задачу на карточку)',
@@ -667,6 +687,14 @@
         tabDirector: 'Director & Trophies',
         searchMemberPlaceholder: 'Search by name, role, experience, or phone...',
         addMember: 'Add Member',
+        manageColsBtn: '+ Columns',
+        colsModalTitle: 'Custom Columns for Team Table',
+        colsModalDesc: 'Add any custom fields (e.g. Portfolio, Discord, Registration Site, Timezone) — they automatically appear in the table and member form.',
+        colNamePlaceholder: 'Column name (e.g. Portfolio)',
+        colTypeText: 'Text',
+        colTypeLink: 'Link (URL)',
+        addColBtn: 'Add Column',
+        customFieldsHeader: 'Custom Fields:',
         quickAddMemberHint: 'Unlimited team members',
         orderCol: '#',
         photoCol: 'Photo',
@@ -682,7 +710,19 @@
         allLevels: 'All levels',
         addTask: 'New Task',
         addBreak: '+ 30m Break',
-        viewToday: 'Today\'s Plan',
+        viewToday: 'Daily Plan',
+        dayLabel: 'Day',
+        newDayBtn: '+ New Day',
+        allDaysOption: 'All Days',
+        carryOverBtn: 'Carry unfinished →',
+        carryOverDone: 'Unfinished tasks moved to',
+        carryOverNone: 'All tasks for this day are already done!',
+        roadmapByMilestones: '🚩 By Milestones',
+        roadmapByDays: '📅 By Days',
+        dayExpandTitle: 'Day Breakdown',
+        dayMilestonesLabel: 'Main stages for this day:',
+        addTaskToDay: '+ Task for Day',
+        taskDayLabel: 'Schedule Day (Day 1, Day 2...)',
         viewAssign: 'By Member',
         viewByMilestone: 'By Roadmap Flag',
         membersStripTitle: 'Members (click to filter or drag a task onto a member)',
@@ -1260,12 +1300,20 @@
         taskViewMode: 'today',
         taskFilterMemberId: 'all',
         roadmapZoom: 1,
+        roadmapMode: 'milestones',
         folders: [
           {
             id: 'folder_starter',
             name: 'Стартовый проект (пример)',
             theme: synthesizeProceduralTheme('СССР город до нашей эры'),
             trophies: [],
+            activeDayId: 'day_1',
+            days: [
+              { id: 'day_1', num: 1, title: 'День 1', date: '2026-11-24' }
+            ],
+            customColumns: [
+              { id: 'col_portfolio', label: 'Портфолио / Сайт', type: 'link' }
+            ],
             members: [
               { id: m1, order: 1, name: 'Участник #1 (Руководитель)', roles: ['Геймдизайнер', 'Артовик'], level: 'lead', expText: 'Опыт 3 года, арт и координация', phone: '+996 555 000 001', photo: '' },
               { id: m2, order: 2, name: 'Участник #2 (Разработчик)', roles: ['Программист', 'Художник'], level: 'middle', expText: 'Опыт 2 года, логика и прототипы', phone: '+996 555 000 002', photo: '' }
@@ -1276,9 +1324,9 @@
               { id: ms3, title: 'Финальный релиз', description: 'Финальный тест и публикация.', targetDate: '2026-12-20', completed: false }
             ],
             tasks: [
-              { id: uid('t'), title: 'Собрать референсы и план этапа', description: 'Подготовить мудборд и распределить задачи.', type: 'personal', assigneeId: m1, status: 'in_progress', durationMin: 60, remainingSec: 3600, running: false, timeSlot: '10:00 - 11:00', milestoneId: ms2, onRoadmap: true, isToday: true },
-              { id: uid('t'), title: 'Командный отдых 30 минут', description: 'Перерыв для всей команды.', type: 'rest', assigneeId: '', status: 'todo', durationMin: 30, remainingSec: 1800, running: false, timeSlot: '12:00 - 12:30', milestoneId: '', onRoadmap: false, isToday: true },
-              { id: uid('t'), title: 'Общий синк по прототипу', description: 'Проверить прогресс всех участников и обновить вехи.', type: 'team', assigneeId: '', status: 'todo', durationMin: 40, remainingSec: 2400, running: false, timeSlot: '14:00 - 14:40', milestoneId: ms2, onRoadmap: true, isToday: true }
+              { id: uid('t'), title: 'Собрать референсы и план этапа', description: 'Подготовить мудборд и распределить задачи.', type: 'personal', assigneeId: m1, status: 'in_progress', durationMin: 60, remainingSec: 3600, running: false, timeSlot: '10:00 - 11:00', milestoneId: ms2, dayId: 'day_1', onRoadmap: true, isToday: true },
+              { id: uid('t'), title: 'Командный отдых 30 минут', description: 'Перерыв для всей команды.', type: 'rest', assigneeId: '', status: 'todo', durationMin: 30, remainingSec: 1800, running: false, timeSlot: '12:00 - 12:30', milestoneId: '', dayId: 'day_1', onRoadmap: false, isToday: true },
+              { id: uid('t'), title: 'Общий синк по прототипу', description: 'Проверить прогресс всех участников и обновить вехи.', type: 'team', assigneeId: '', status: 'todo', durationMin: 40, remainingSec: 2400, running: false, timeSlot: '14:00 - 14:40', milestoneId: ms2, dayId: 'day_1', onRoadmap: true, isToday: true }
             ],
             decisions: []
           }
@@ -1305,7 +1353,15 @@
         state = idbData;
         state.folders.forEach(f => {
           if (!f.trophies) f.trophies = [];
-          (f.tasks || []).forEach(tk => { tk.running = false; });
+          ensureFolderDays(f);
+          (f.tasks || []).forEach(tk => {
+            if (tk.running && tk.runningSince) {
+              const elapsed = Math.floor((Date.now() - tk.runningSince) / 1000);
+              tk.remainingSec = Math.max(0, (tk.remainingSec || 0) - elapsed);
+              tk.runningSince = Date.now();
+              if (tk.remainingSec <= 0) { tk.running = false; tk.runningSince = null; }
+            }
+          });
         });
         return;
       }
@@ -1318,7 +1374,15 @@
             state = parsed;
             state.folders.forEach(f => {
               if (!f.trophies) f.trophies = [];
-              (f.tasks || []).forEach(tk => { tk.running = false; });
+              ensureFolderDays(f);
+              (f.tasks || []).forEach(tk => {
+                if (tk.running && tk.runningSince) {
+                  const elapsed = Math.floor((Date.now() - tk.runningSince) / 1000);
+                  tk.remainingSec = Math.max(0, (tk.remainingSec || 0) - elapsed);
+                  tk.runningSince = Date.now();
+                  if (tk.remainingSec <= 0) { tk.running = false; tk.runningSince = null; }
+                }
+              });
             });
             return;
           }
@@ -1337,7 +1401,25 @@
     }
 
     function t(key) { return (I18N[state.lang] && I18N[state.lang][key]) || I18N.ru[key] || key; }
-    function getActiveFolder() { return state.folders.find(f => f.id === state.activeFolderId) || state.folders[0] || null; }
+    function ensureFolderDays(folder) {
+      if (!folder) return;
+      if (!Array.isArray(folder.customColumns)) folder.customColumns = [];
+      if (!Array.isArray(folder.days) || folder.days.length === 0) {
+        folder.days = [{ id: 'day_1', num: 1, title: state.lang === 'ru' ? 'День 1' : 'Day 1', date: new Date().toISOString().slice(0, 10) }];
+      }
+      if (!folder.activeDayId || (folder.activeDayId !== 'all' && !folder.days.some(d => d.id === folder.activeDayId))) {
+        folder.activeDayId = folder.days[folder.days.length - 1].id;
+      }
+      const firstId = folder.days[0].id;
+      (folder.tasks || []).forEach(tk => {
+        if (!tk.dayId) tk.dayId = firstId;
+      });
+    }
+    function getActiveFolder() {
+      const f = state.folders.find(x => x.id === state.activeFolderId) || state.folders[0] || null;
+      if (f) ensureFolderDays(f);
+      return f;
+    }
 
     /* =========================================================================
        4. WEB AUDIO SYNTH (CLICKS, COMPLETE CHIME, VICTORY FANFARE) + CONFETTI
@@ -1641,7 +1723,7 @@
           for (const task of folder.tasks) {
             if (task.running) {
               if (task.remainingSec > 0) {
-                task.remainingSec -= 1; changed = true;
+                task.remainingSec -= 1; task.runningSince = Date.now(); changed = true;
                 const el = document.querySelector(`[data-timer-display="${task.id}"]`);
                 if (el) el.textContent = formatTimer(task.remainingSec);
                 const bar = document.querySelector(`[data-timer-bar="${task.id}"]`);
@@ -1846,7 +1928,8 @@
 
         const generatedTheme = await generateThemeWithOptionalAI(themePrompt);
         const newFolder = {
-          id: uid('folder'), name, theme: generatedTheme, trophies: [], members: [],
+          id: uid('folder'), name, theme: generatedTheme, trophies: [], activeDayId: 'day_1',
+          days: [{ id: 'day_1', num: 1, title: state.lang === 'ru' ? 'День 1' : 'Day 1', date: new Date().toISOString().slice(0, 10) }], members: [],
           milestones: [
             { id: uid('ms'), title: state.lang === 'ru' ? 'Старт: Обсуждение идеи' : 'Kickoff: Idea', description: '', targetDate: '', completed: false },
             { id: uid('ms'), title: state.lang === 'ru' ? 'Первый прототип' : 'First Prototype', description: '', targetDate: '', completed: false },
@@ -1896,7 +1979,8 @@
       const allRoles = Array.from(new Set([...PRESET_ROLES, ...folder.members.flatMap(m => m.roles || [])]));
       const filtered = [...folder.members].sort((a, b) => (a.order || 0) - (b.order || 0)).filter(m => {
         const q = memberSearchQuery.toLowerCase().trim();
-        const matchQ = !q || (m.name || '').toLowerCase().includes(q) || (m.roles || []).some(r => r.toLowerCase().includes(q)) || (m.expText || '').toLowerCase().includes(q) || (m.phone || '').toLowerCase().includes(q);
+        const cfVals = Object.values(m.customFields || {}).join(' ').toLowerCase();
+        const matchQ = !q || (m.name || '').toLowerCase().includes(q) || (m.roles || []).some(r => r.toLowerCase().includes(q)) || (m.expText || '').toLowerCase().includes(q) || (m.phone || '').toLowerCase().includes(q) || cfVals.includes(q);
         const matchRole = memberRoleFilter === 'all' || (m.roles || []).includes(memberRoleFilter);
         const matchLevel = memberLevelFilter === 'all' || m.level === memberLevelFilter;
         return matchQ && matchRole && matchLevel;
@@ -1910,14 +1994,17 @@
               <select id="memberRoleFilterSel"><option value="all">${t('allRoles')}</option>${allRoles.map(r => `<option value="${escapeHtml(r)}" ${memberRoleFilter === r ? 'selected' : ''}>${escapeHtml(r)}</option>`).join('')}</select>
               <select id="memberLevelFilterSel"><option value="all">${t('allLevels')}</option>${SKILL_LEVELS.map(lv => `<option value="${lv.id}" ${memberLevelFilter === lv.id ? 'selected' : ''}>${state.lang === 'ru' ? lv.ru : lv.en}</option>`).join('')}</select>
             </div>
-            <button id="addMemberBtn" class="btn-accent px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="user-plus" class="w-4 h-4"></i> <span>${t('addMember')}</span></button>
+            <div class="flex items-center gap-2">
+              <button id="manageColsBtn" class="px-3.5 py-2 rounded-xl card text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="columns-3" class="w-4 h-4" style="color: var(--accent);"></i> <span>${t('manageColsBtn')}</span></button>
+              <button id="addMemberBtn" class="btn-accent px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="user-plus" class="w-4 h-4"></i> <span>${t('addMember')}</span></button>
+            </div>
           </div>
           <div class="panel rounded-2xl overflow-hidden">
             <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse min-w-[720px]">
-                <thead><tr class="text-[11px] uppercase tracking-wider border-b" style="border-color: var(--border-color); color: var(--text-muted); background: rgba(0,0,0,0.24);"><th class="py-3 px-3 w-16">${t('orderCol')}</th><th class="py-3 px-3 w-16">${t('photoCol')}</th><th class="py-3 px-3">${t('nameCol')}</th><th class="py-3 px-3">${t('rolesCol')}</th><th class="py-3 px-3">${t('skillCol')}</th><th class="py-3 px-3">${t('phoneCol')}</th><th class="py-3 px-3 text-right">${t('actionsCol')}</th></tr></thead>
+                <thead><tr class="text-[11px] uppercase tracking-wider border-b" style="border-color: var(--border-color); color: var(--text-muted); background: rgba(0,0,0,0.24);"><th class="py-3 px-3 w-16">${t('orderCol')}</th><th class="py-3 px-3 w-16">${t('photoCol')}</th><th class="py-3 px-3">${t('nameCol')}</th><th class="py-3 px-3">${t('rolesCol')}</th><th class="py-3 px-3">${t('skillCol')}</th><th class="py-3 px-3">${t('phoneCol')}</th>${(folder.customColumns || []).map(col => `<th class="py-3 px-3">${escapeHtml(col.label)}</th>`).join('')}<th class="py-3 px-3 text-right">${t('actionsCol')}</th></tr></thead>
                 <tbody class="divide-y" style="border-color: var(--border-color);">
-                  ${filtered.length === 0 ? `<tr><td colspan="7" class="py-10 text-center text-sm" style="color: var(--text-muted);">${t('noMembers')}</td></tr>` : filtered.map(m => {
+                  ${filtered.length === 0 ? `<tr><td colspan="${7 + (folder.customColumns || []).length}" class="py-10 text-center text-sm" style="color: var(--text-muted);">${t('noMembers')}</td></tr>` : filtered.map(m => {
                     const lv = SKILL_LEVELS.find(x => x.id === m.level) || SKILL_LEVELS[2];
                     const stars = '★'.repeat(lv.stars) + '☆'.repeat(5 - lv.stars);
                     const initials = (m.name || '?').split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase();
@@ -1928,6 +2015,15 @@
                       <td class="py-3 px-3"><div class="flex flex-wrap gap-1">${(m.roles || []).map(r => `<span class="text-[11px] px-2 py-0.5 rounded-md accent-pill">${escapeHtml(r)}</span>`).join('')}</div></td>
                       <td class="py-3 px-3"><div class="text-xs font-semibold" style="color:${lv.color}">${state.lang === 'ru' ? lv.ru : lv.en}</div><div class="text-[11px]" style="color:${lv.color}">${stars}</div>${m.expText ? `<div class="text-[11px] mt-0.5" style="color: var(--text-muted);">${escapeHtml(m.expText)}</div>` : ''}</td>
                       <td class="py-3 px-3">${m.phone ? `<a href="tel:${escapeHtml(m.phone.replace(/\s+/g,''))}" class="text-xs font-mono hover:underline flex items-center gap-1 text-emerald-300"><i data-lucide="phone" class="w-3.5 h-3.5"></i> ${escapeHtml(m.phone)}</a>` : '<span class="text-xs opacity-40">—</span>'}</td>
+                      ${(folder.customColumns || []).map(col => {
+                        const val = (m.customFields && m.customFields[col.id]) ? String(m.customFields[col.id]).trim() : '';
+                        if (!val) return '<td class="py-3 px-3"><span class="text-xs opacity-40">—</span></td>';
+                        if (col.type === 'link' || /^https?:\/\//i.test(val)) {
+                          const href = /^https?:\/\//i.test(val) ? val : 'https://' + val;
+                          return `<td class="py-3 px-3"><a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="text-xs hover:underline inline-flex items-center gap-1 max-w-[180px] truncate" style="color: var(--accent-2);"><i data-lucide="external-link" class="w-3.5 h-3.5 shrink-0"></i><span class="truncate">${escapeHtml(val.replace(/^https?:\/\//i, ''))}</span></a></td>`;
+                        }
+                        return `<td class="py-3 px-3 text-xs">${escapeHtml(val)}</td>`;
+                      }).join('')}
                       <td class="py-3 px-3 text-right"><div class="inline-flex items-center gap-1"><button class="p-1.5 rounded-lg card" data-edit-member="${m.id}" title="${t('edit')}"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>${isDir ? `<button class="p-1.5 rounded-lg card text-red-400 hover:bg-red-500/20" data-delete-member="${m.id}" title="${t('del')}"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}</div></td>
                     </tr>`;
                   }).join('')}
@@ -1950,6 +2046,7 @@
       });
       document.getElementById('memberRoleFilterSel').addEventListener('change', (e) => { memberRoleFilter = e.target.value; renderTeamTab(container, folder); if (window.lucide) lucide.createIcons(); });
       document.getElementById('memberLevelFilterSel').addEventListener('change', (e) => { memberLevelFilter = e.target.value; renderTeamTab(container, folder); if (window.lucide) lucide.createIcons(); });
+      document.getElementById('manageColsBtn').addEventListener('click', openCustomColumnsModal);
       document.getElementById('addMemberBtn').addEventListener('click', () => openMemberModal(null));
       document.getElementById('addMemberBottomBtn').addEventListener('click', () => openMemberModal(null));
       container.querySelectorAll('[data-edit-member]').forEach(btn => btn.addEventListener('click', () => openMemberModal(btn.dataset.editMember)));
@@ -1977,6 +2074,50 @@
           if (!m || !m.photo) return;
           openModal(`<div class="space-y-3 text-center"><img src="${m.photo}" alt="${escapeHtml(m.name)}" class="max-h-[65vh] mx-auto rounded-xl object-contain" /><div class="font-bold text-base">${escapeHtml(m.name)}</div><button id="closeZoomBtn" class="px-4 py-1.5 rounded-lg card text-xs">${t('closeBtn')}</button></div>`);
           document.getElementById('closeZoomBtn').addEventListener('click', closeModal);
+        });
+      });
+    }
+
+    function openCustomColumnsModal() {
+      const folder = getActiveFolder();
+      const isDir = state.roleMode === 'director';
+      openModal(`
+        <div class="space-y-4">
+          <h3 class="font-bold text-base">${t('colsModalTitle')}</h3>
+          <p class="text-xs" style="color: var(--text-muted);">${t('colsModalDesc')}</p>
+          <form id="addColForm" class="flex flex-wrap gap-2">
+            <input id="newColLabel" required class="flex-1 min-w-[160px]" placeholder="${t('colNamePlaceholder')}" />
+            <select id="newColType">
+              <option value="link">🔗 ${t('colTypeLink')}</option>
+              <option value="text">📝 ${t('colTypeText')}</option>
+            </select>
+            <button type="submit" class="btn-accent px-3.5 py-2 rounded-lg text-xs font-semibold">${t('addColBtn')}</button>
+          </form>
+          <div class="space-y-1.5 max-h-52 overflow-y-auto">
+            ${(folder.customColumns || []).length === 0 ? `<div class="text-xs opacity-60 text-center py-4">—</div>` : folder.customColumns.map(col => `
+              <div class="card px-3 py-2 rounded-xl flex items-center justify-between text-xs">
+                <div><span class="font-semibold">${escapeHtml(col.label)}</span> <span class="opacity-60">(${col.type === 'link' ? t('colTypeLink') : t('colTypeText')})</span></div>
+                ${isDir ? `<button type="button" data-del-col="${col.id}" class="text-red-400 hover:opacity-80"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
+              </div>
+            `).join('')}
+          </div>
+          <div class="flex justify-end"><button id="closeColsBtn" class="px-4 py-1.5 rounded-lg card text-xs">${t('closeBtn')}</button></div>
+        </div>
+      `);
+      document.getElementById('closeColsBtn').addEventListener('click', closeModal);
+      document.getElementById('addColForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const label = document.getElementById('newColLabel').value.trim();
+        const type = document.getElementById('newColType').value;
+        if (!label) return;
+        folder.customColumns.push({ id: uid('col'), label, type });
+        saveState(); renderAll(); openCustomColumnsModal();
+      });
+      document.querySelectorAll('[data-del-col]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cid = btn.dataset.delCol;
+          folder.customColumns = folder.customColumns.filter(c => c.id !== cid);
+          saveState(); renderAll(); openCustomColumnsModal();
         });
       });
     }
@@ -2016,6 +2157,19 @@
             <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('phoneLabel')}</label><input id="memPhone" type="tel" class="w-full" value="${escapeHtml(existing ? existing.phone : '')}" placeholder="+996 ..." /></div>
           </div>
           <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('expYearsLabel')}</label><input id="memExp" class="w-full" value="${escapeHtml(existing ? existing.expText : '')}" placeholder="Например: 2 года, 3D / Программирование" /></div>
+          ${(folder.customColumns || []).length > 0 ? `
+            <div class="pt-2 border-t space-y-2.5" style="border-color: var(--border-color);">
+              <div class="text-xs font-semibold" style="color: var(--text-muted);">${t('customFieldsHeader')}</div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                ${folder.customColumns.map(col => `
+                  <div>
+                    <label class="block text-[11px] mb-1" style="color: var(--text-muted);">${escapeHtml(col.label)}</label>
+                    <input data-custom-col-input="${col.id}" type="${col.type === 'link' ? 'url' : 'text'}" class="w-full" value="${escapeHtml(existing && existing.customFields ? (existing.customFields[col.id] || '') : '')}" placeholder="${col.type === 'link' ? 'https://...' : ''}" />
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
           <div>
             <label class="block text-xs mb-1.5" style="color: var(--text-muted);">${t('photoLabel')}</label>
             <div class="flex items-center gap-3">
@@ -2048,7 +2202,9 @@
       document.getElementById('cancelMemBtn').addEventListener('click', closeModal);
       document.getElementById('memberForm').addEventListener('submit', (e) => {
         e.preventDefault();
-        const data = { id: existing ? existing.id : uid('mem'), order: Math.max(1, Number(document.getElementById('memOrder').value) || nextOrder), name: document.getElementById('memName').value.trim(), roles: selectedRoles.length ? selectedRoles : ['Участник'], level: document.getElementById('memLevel').value, expText: document.getElementById('memExp').value.trim(), phone: document.getElementById('memPhone').value.trim(), photo: currentPhoto };
+        const customFields = {};
+        document.querySelectorAll('[data-custom-col-input]').forEach(inp => { customFields[inp.dataset.customColInput] = inp.value.trim(); });
+        const data = { id: existing ? existing.id : uid('mem'), order: Math.max(1, Number(document.getElementById('memOrder').value) || nextOrder), name: document.getElementById('memName').value.trim(), roles: selectedRoles.length ? selectedRoles : ['Участник'], level: document.getElementById('memLevel').value, expText: document.getElementById('memExp').value.trim(), phone: document.getElementById('memPhone').value.trim(), photo: currentPhoto, customFields };
         if (existing) Object.assign(existing, data); else folder.members.push(data);
         saveState(); closeModal(); renderAll(); showToast(t('toastSaved'));
       });
@@ -2058,9 +2214,13 @@
        11. TAB 2: TASKS & DAILY SCHEDULE (WITH VICTORY CELEBRATIONS)
     ========================================================================= */
     function renderTasksTab(container, folder) {
+      ensureFolderDays(folder);
       const isDir = state.roleMode === 'director';
       const sortedMembers = [...folder.members].sort((a, b) => a.order - b.order);
-      const filtered = folder.tasks.filter(tk => {
+      const dayScoped = folder.activeDayId === 'all'
+        ? folder.tasks
+        : folder.tasks.filter(tk => tk.dayId === folder.activeDayId);
+      const filtered = dayScoped.filter(tk => {
         if (state.taskFilterMemberId === 'all') return true;
         if (state.taskFilterMemberId === 'team') return tk.type === 'team';
         if (state.taskFilterMemberId === 'rest') return tk.type === 'rest';
@@ -2079,6 +2239,29 @@
               <button id="quickBreakBtn" class="px-3 py-2 rounded-xl text-xs font-semibold card text-emerald-300 border-emerald-500/30 flex items-center gap-1"><i data-lucide="coffee" class="w-3.5 h-3.5"></i> <span>${t('addBreak')}</span></button>
               <button id="addTaskBtn" class="btn-accent px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="plus" class="w-4 h-4"></i> <span>${t('addTask')}</span></button>
             </div>
+          </div>
+
+          <!-- Day Switcher Bar (Day 1, Day 2, + New Day, Carry Over) -->
+          <div class="panel rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-1.5">
+              ${folder.days.map(d => {
+                const dTasks = folder.tasks.filter(tk => tk.dayId === d.id);
+                const dDone = dTasks.filter(tk => tk.status === 'done').length;
+                const active = folder.activeDayId === d.id;
+                return `<button type="button" data-select-day="${d.id}" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${active ? 'accent-pill' : 'card'}">
+                  <span>📅 ${escapeHtml(d.title)}</span>
+                  <span class="text-[10px] px-1.5 rounded bg-black/25">${dDone}/${dTasks.length}</span>
+                </button>`;
+              }).join('')}
+              <button type="button" data-select-day="all" class="px-3 py-1.5 rounded-xl text-xs font-semibold border ${folder.activeDayId === 'all' ? 'accent-pill' : 'card'}">🗂 ${t('allDaysOption')}</button>
+              <button type="button" id="addNewDayBtn" class="px-3 py-1.5 rounded-xl text-xs font-bold btn-accent">${t('newDayBtn')}</button>
+            </div>
+            ${folder.activeDayId !== 'all' ? `
+              <button type="button" id="carryOverDayBtn" class="px-3 py-1.5 rounded-xl text-xs font-semibold card flex items-center gap-1" title="Перенести невыполненные задачи в следующий день">
+                <i data-lucide="corner-down-right" class="w-3.5 h-3.5" style="color: var(--accent);"></i>
+                <span>${t('carryOverBtn')}</span>
+              </button>
+            ` : ''}
           </div>
 
           <div class="panel rounded-2xl p-3 space-y-2">
@@ -2103,8 +2286,40 @@
       document.getElementById('viewAssignBtn').addEventListener('click', () => { state.taskViewMode = 'assign'; saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons(); });
       document.getElementById('viewMsBtn').addEventListener('click', () => { state.taskViewMode = 'milestones'; saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons(); });
       document.getElementById('addTaskBtn').addEventListener('click', () => openTaskModal(null, null));
+      container.querySelectorAll('[data-select-day]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          folder.activeDayId = btn.dataset.selectDay;
+          saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons();
+        });
+      });
+      document.getElementById('addNewDayBtn').addEventListener('click', () => {
+        const nextNum = folder.days.length ? Math.max(...folder.days.map(d => d.num || 0)) + 1 : 1;
+        const newDay = { id: uid('day'), num: nextNum, title: `${t('dayLabel')} ${nextNum}`, date: new Date().toISOString().slice(0, 10) };
+        folder.days.push(newDay);
+        folder.activeDayId = newDay.id;
+        saveState(); renderAll(); showToast(`📅 ${newDay.title}`);
+      });
+      const carryBtn = document.getElementById('carryOverDayBtn');
+      if (carryBtn) {
+        carryBtn.addEventListener('click', () => {
+          const unfinished = folder.tasks.filter(tk => tk.dayId === folder.activeDayId && tk.status !== 'done' && tk.type !== 'rest');
+          if (unfinished.length === 0) { showToast(t('carryOverNone')); return; }
+          const curIdx = folder.days.findIndex(d => d.id === folder.activeDayId);
+          let targetDay = folder.days[curIdx + 1];
+          if (!targetDay) {
+            const nextNum = Math.max(...folder.days.map(d => d.num || 0)) + 1;
+            targetDay = { id: uid('day'), num: nextNum, title: `${t('dayLabel')} ${nextNum}`, date: new Date().toISOString().slice(0, 10) };
+            folder.days.push(targetDay);
+          }
+          unfinished.forEach(tk => { tk.dayId = targetDay.id; });
+          folder.activeDayId = targetDay.id;
+          saveState(); renderAll();
+          showToast(`${t('carryOverDone')} ${targetDay.title} (${unfinished.length})`);
+        });
+      }
       document.getElementById('quickBreakBtn').addEventListener('click', () => {
-        folder.tasks.push({ id: uid('t'), title: state.lang === 'ru' ? 'Перерыв / Отдых 30 минут' : 'Team Break / 30m Rest', description: state.lang === 'ru' ? 'Отдых от экрана и восстановление сил.' : 'Rest away from screens.', type: 'rest', assigneeId: '', status: 'todo', durationMin: 30, remainingSec: 1800, running: false, timeSlot: '15:00 - 15:30', milestoneId: '', onRoadmap: false, isToday: true });
+        const targetDayId = folder.activeDayId === 'all' ? folder.days[folder.days.length - 1].id : folder.activeDayId;
+        folder.tasks.push({ id: uid('t'), title: state.lang === 'ru' ? 'Перерыв / Отдых 30 минут' : 'Team Break / 30m Rest', description: state.lang === 'ru' ? 'Отдых от экрана и восстановление сил.' : 'Rest away from screens.', type: 'rest', assigneeId: '', status: 'todo', durationMin: 30, remainingSec: 1800, running: false, timeSlot: '15:00 - 15:30', milestoneId: '', dayId: targetDayId, onRoadmap: false, isToday: true });
         saveState(); renderAll(); showToast(t('toastSaved'));
       });
       bindTaskInteractions(container, folder);
@@ -2217,14 +2432,14 @@
         btn.addEventListener('click', () => {
           const tk = folder.tasks.find(x => x.id === btn.dataset.timerToggle); if (!tk) return;
           if (!tk.running && tk.remainingSec <= 0) tk.remainingSec = (tk.durationMin || 30) * 60;
-          tk.running = !tk.running; if (tk.running && tk.status === 'todo') tk.status = 'in_progress';
+          tk.running = !tk.running; tk.runningSince = tk.running ? Date.now() : null; if (tk.running && tk.status === 'todo') tk.status = 'in_progress';
           saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons();
         });
       });
       container.querySelectorAll('[data-timer-reset]').forEach(btn => {
         btn.addEventListener('click', () => {
           const tk = folder.tasks.find(x => x.id === btn.dataset.timerReset); if (!tk) return;
-          tk.running = false; tk.remainingSec = (tk.durationMin || 30) * 60;
+          tk.running = false; tk.runningSince = null; tk.remainingSec = (tk.durationMin || 30) * 60;
           saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons();
         });
       });
@@ -2237,11 +2452,14 @@
       });
     }
 
-    function openTaskModal(taskId, presetMilestoneId) {
+    function openTaskModal(taskId, presetMilestoneId, presetDayId) {
       const folder = getActiveFolder();
+      ensureFolderDays(folder);
       const existing = taskId ? folder.tasks.find(x => x.id === taskId) : null;
       const sortedMembers = [...folder.members].sort((a, b) => a.order - b.order);
       const activeMsId = existing ? existing.milestoneId : (presetMilestoneId || '');
+      const fallbackDay = folder.activeDayId === 'all' ? folder.days[folder.days.length - 1].id : folder.activeDayId;
+      const activeDayId = existing ? (existing.dayId || fallbackDay) : (presetDayId || fallbackDay);
       openModal(`
         <form id="taskForm" class="space-y-3.5">
           <h3 class="font-bold text-base">${existing ? t('taskModalTitleEdit') : t('taskModalTitleAdd')}</h3>
@@ -2256,7 +2474,10 @@
             <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskDurationLabel')}</label><input id="tkDuration" type="number" min="1" max="1440" class="w-full" value="${existing ? existing.durationMin : 45}" /></div>
             <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskTimeSlotLabel')}</label><input id="tkSlot" class="w-full" value="${escapeHtml(existing ? existing.timeSlot : '')}" placeholder="10:00 - 11:00" /></div>
           </div>
-          <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskMilestoneLabel')}</label><select id="tkMilestone" class="w-full"><option value="">${t('noMilestone')}</option>${folder.milestones.map(ms => `<option value="${ms.id}" ${activeMsId === ms.id ? 'selected' : ''}>🚩 ${escapeHtml(ms.title)}</option>`).join('')}</select></div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskDayLabel')}</label><select id="tkDay" class="w-full">${folder.days.map(d => `<option value="${d.id}" ${activeDayId === d.id ? 'selected' : ''}>📅 ${escapeHtml(d.title)}</option>`).join('')}</select></div>
+            <div><label class="block text-xs mb-1" style="color: var(--text-muted);">${t('taskMilestoneLabel')}</label><select id="tkMilestone" class="w-full"><option value="">${t('noMilestone')}</option>${folder.milestones.map(ms => `<option value="${ms.id}" ${activeMsId === ms.id ? 'selected' : ''}>🚩 ${escapeHtml(ms.title)}</option>`).join('')}</select></div>
+          </div>
           <div class="space-y-1.5 pt-1">
             <label class="flex items-center gap-2 text-xs cursor-pointer"><input id="tkInToday" type="checkbox" ${(existing ? existing.isToday !== false : true) ? 'checked' : ''} /><span>${t('taskInTodayLabel')}</span></label>
             <label class="flex items-center gap-2 text-xs cursor-pointer"><input id="tkOnRoadmap" type="checkbox" ${(existing ? existing.onRoadmap : true) ? 'checked' : ''} /><span>${t('taskShowRoadmapLabel')}</span></label>
@@ -2271,7 +2492,7 @@
         const type = document.getElementById('tkType').value;
         const newStatus = document.getElementById('tkStatus').value;
         const wasDone = existing && existing.status === 'done';
-        const data = { id: existing ? existing.id : uid('t'), title: document.getElementById('tkTitle').value.trim(), description: document.getElementById('tkDesc').value.trim(), type, assigneeId: type === 'personal' ? document.getElementById('tkAssignee').value : '', status: newStatus, durationMin: dur, remainingSec: existing && existing.durationMin === dur ? existing.remainingSec : dur * 60, running: existing ? existing.running : false, timeSlot: document.getElementById('tkSlot').value.trim(), milestoneId: document.getElementById('tkMilestone').value, onRoadmap: document.getElementById('tkOnRoadmap').checked, isToday: document.getElementById('tkInToday').checked };
+        const data = { id: existing ? existing.id : uid('t'), title: document.getElementById('tkTitle').value.trim(), description: document.getElementById('tkDesc').value.trim(), type, assigneeId: type === 'personal' ? document.getElementById('tkAssignee').value : '', status: newStatus, durationMin: dur, remainingSec: existing && existing.durationMin === dur ? existing.remainingSec : dur * 60, running: existing ? existing.running : false, timeSlot: document.getElementById('tkSlot').value.trim(), dayId: document.getElementById('tkDay').value, milestoneId: document.getElementById('tkMilestone').value, onRoadmap: document.getElementById('tkOnRoadmap').checked, isToday: document.getElementById('tkInToday').checked };
         if (existing) Object.assign(existing, data); else folder.tasks.push(data);
         saveState(); closeModal(); renderAll(); showToast(t('toastSaved'));
         if (!wasDone && newStatus === 'done') checkAllTasksVictory(folder);
@@ -2282,8 +2503,10 @@
        12. TAB 3: DESIGNER THEMED ROADMAP
     ========================================================================= */
     function renderRoadmapTab(container, folder) {
+      ensureFolderDays(folder);
       const theme = folder.theme;
       const isDir = state.roleMode === 'director';
+      const rmMode = state.roadmapMode || 'milestones';
       const roadmapTasks = folder.tasks.filter(tk => tk.onRoadmap);
       const completedMs = folder.milestones.filter(m => m.completed).length;
       const totalMs = folder.milestones.length;
@@ -2291,11 +2514,44 @@
       const fallbackMsId = (folder.milestones.find(m => !m.completed) || folder.milestones[0] || {}).id || '';
       const spineClass = theme.spineStyle === 'hazard' ? 'spine-hazard' : theme.spineStyle === 'stone' ? 'spine-stone' : theme.spineStyle === 'circuit' ? 'spine-circuit' : '';
 
+      const dayNodesHTML = folder.days.map((d, idx) => {
+        const dTasks = folder.tasks.filter(tk => tk.dayId === d.id);
+        const dDone = dTasks.filter(tk => tk.status === 'done').length;
+        const dAllDone = dTasks.length > 0 && dDone === dTasks.length;
+        const linkedMsIds = Array.from(new Set(dTasks.map(tk => tk.milestoneId).filter(Boolean)));
+        const linkedMsNames = linkedMsIds.map(id => (folder.milestones.find(m => m.id === id) || {}).title).filter(Boolean);
+        const topTasks = dTasks.filter((_, i) => i % 2 === 0);
+        const bottomTasks = dTasks.filter((_, i) => i % 2 === 1);
+        return `
+          <div class="roadmap-node-col" style="min-width: ${Math.max(275, Math.max(topTasks.length, bottomTasks.length) * 174)}px;">
+            ${topTasks.length ? `<div class="roadmap-branch-top">${topTasks.map(tk => renderBranchChip(tk, folder)).join('')}</div>` : ''}
+            <div class="flex flex-col items-center">
+              <div class="milestone-orb w-16 h-16 rounded-2xl flex flex-col items-center justify-center border-2 relative cursor-pointer" data-inspect-day="${d.id}"
+                style="background: ${dAllDone ? 'linear-gradient(135deg, var(--accent), var(--accent-2))' : 'var(--bg-card)'}; border-color: var(--accent); box-shadow: 0 0 24px var(--glow);">
+                <span class="text-[10px] uppercase opacity-80">${t('dayLabel')}</span>
+                <span class="text-xl font-black leading-none">${d.num || idx + 1}</span>
+                <span class="absolute -top-2.5 -right-2.5 px-1.5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center bg-black border" style="border-color: var(--accent);">${dDone}/${dTasks.length}</span>
+              </div>
+              <div class="mt-2.5 text-center max-w-[225px] card px-3 py-1.5 rounded-xl cursor-pointer" data-inspect-day="${d.id}">
+                <div class="text-xs font-bold leading-tight display-font">📅 ${escapeHtml(d.title)}</div>
+                ${linkedMsNames.length ? `<div class="text-[10px] mt-0.5 truncate" style="color: var(--accent-2);">🚩 ${escapeHtml(linkedMsNames.join(', '))}</div>` : ''}
+                <button type="button" data-quick-day-task="${d.id}" class="mt-1 text-[10px] px-2 py-0.5 rounded-md accent-pill">${t('addTaskToDay')}</button>
+              </div>
+            </div>
+            ${bottomTasks.length ? `<div class="roadmap-branch-bottom">${bottomTasks.map(tk => renderBranchChip(tk, folder)).join('')}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+
       container.innerHTML = `
         <div class="space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div><h2 class="font-bold text-base sm:text-lg display-font">${t('roadmapTitle')}</h2><p class="text-xs" style="color: var(--text-muted);">${t('clickHint')}</p></div>
             <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-1 panel p-1 rounded-xl">
+                <button id="rmModeMsBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${rmMode === 'milestones' ? 'accent-pill' : ''}">${t('roadmapByMilestones')}</button>
+                <button id="rmModeDaysBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${rmMode === 'days' ? 'accent-pill' : ''}">${t('roadmapByDays')}</button>
+              </div>
               <div class="flex items-center gap-2 panel px-3 py-1.5 rounded-xl text-xs"><span style="color: var(--text-muted);">${t('zoomLabel')}:</span><input id="roadmapZoomRange" type="range" min="0.75" max="1.35" step="0.05" value="${state.roadmapZoom}" class="w-24 p-0 border-0" /><span class="font-mono w-10">${Math.round(state.roadmapZoom * 100)}%</span></div>
               <button id="addTaskFromMapBtn" class="px-3.5 py-2 rounded-xl card text-xs font-semibold flex items-center gap-1.5"><i data-lucide="plus-circle" class="w-4 h-4" style="color: var(--accent);"></i><span>${t('addTaskOnMap')}</span></button>
               <button id="addMilestoneBtn" class="btn-accent px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="flag" class="w-4 h-4"></i><span>${t('addMilestone')}</span></button>
@@ -2319,7 +2575,7 @@
                 <div class="mt-2 text-xs font-black tracking-widest uppercase display-font">${t('startFlag')}</div>
               </div>
 
-              ${folder.milestones.map((ms, idx) => {
+              ${rmMode === 'days' ? dayNodesHTML : folder.milestones.map((ms, idx) => {
                 const linkedTasks = roadmapTasks.filter(tk => (tk.milestoneId || fallbackMsId) === ms.id);
                 const doneLinked = linkedTasks.filter(tk => tk.status === 'done').length;
                 const topTasks = linkedTasks.filter((_, i) => i % 2 === 0);
@@ -2356,6 +2612,10 @@
         </div>
       `;
 
+      document.getElementById('rmModeMsBtn').addEventListener('click', () => { state.roadmapMode = 'milestones'; saveState(); renderRoadmapTab(container, folder); if (window.lucide) lucide.createIcons(); });
+      document.getElementById('rmModeDaysBtn').addEventListener('click', () => { state.roadmapMode = 'days'; saveState(); renderRoadmapTab(container, folder); if (window.lucide) lucide.createIcons(); });
+      container.querySelectorAll('[data-quick-day-task]').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); openTaskModal(null, null, btn.dataset.quickDayTask); }));
+      container.querySelectorAll('[data-inspect-day]').forEach(node => node.addEventListener('click', () => openDayInspectModal(node.dataset.inspectDay)));
       document.getElementById('roadmapZoomRange').addEventListener('input', (e) => { state.roadmapZoom = Number(e.target.value); renderRoadmapTab(container, folder); if (window.lucide) lucide.createIcons(); });
       document.getElementById('addMilestoneBtn').addEventListener('click', () => openMilestoneModal(null));
       document.getElementById('addTaskFromMapBtn').addEventListener('click', () => openTaskModal(null, fallbackMsId));
@@ -2400,6 +2660,56 @@
         if (tk.status === 'done') tk.running = false;
         saveState(); closeModal(); renderAll();
         if (prev !== 'done' && tk.status === 'done') checkAllTasksVictory(folder);
+      });
+    }
+
+    function openDayInspectModal(dayId) {
+      const folder = getActiveFolder();
+      const d = folder.days.find(x => x.id === dayId);
+      if (!d) return;
+      const dTasks = folder.tasks.filter(tk => tk.dayId === d.id);
+      const dDone = dTasks.filter(tk => tk.status === 'done').length;
+      const pct = dTasks.length ? Math.round((dDone / dTasks.length) * 100) : 0;
+      const msIds = Array.from(new Set(dTasks.map(tk => tk.milestoneId).filter(Boolean)));
+      const msList = msIds.map(id => folder.milestones.find(m => m.id === id)).filter(Boolean);
+
+      openModal(`
+        <div class="space-y-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <span class="text-[11px] px-2 py-0.5 rounded accent-pill">${t('dayExpandTitle')} · ${dDone}/${dTasks.length} (${pct}%)</span>
+              <h3 class="font-bold text-lg mt-2 display-font">📅 ${escapeHtml(d.title)}</h3>
+              ${d.date ? `<div class="text-xs font-mono opacity-70">${escapeHtml(d.date)}</div>` : ''}
+            </div>
+            <button id="addTaskInsideDayBtn" class="btn-accent px-3 py-1.5 rounded-lg text-xs font-semibold">${t('addTaskToDay')}</button>
+          </div>
+          <div class="h-2 rounded-full bg-white/10 overflow-hidden"><div class="h-full rounded-full" style="width:${pct}%; background: linear-gradient(90deg, var(--accent), var(--accent-2));"></div></div>
+          <div class="space-y-1.5">
+            <div class="text-xs font-semibold" style="color: var(--text-muted);">${t('dayMilestonesLabel')}</div>
+            ${msList.length === 0 ? `<div class="text-xs opacity-60">—</div>` : `<div class="flex flex-wrap gap-1.5">${msList.map(m => `<span class="text-xs px-2.5 py-1 rounded-lg accent-pill">🚩 ${escapeHtml(m.title)}</span>`).join('')}</div>`}
+          </div>
+          <div class="space-y-1.5 max-h-56 overflow-y-auto">
+            ${dTasks.length === 0 ? `<div class="text-xs opacity-60">${t('noTasksYet')}</div>` : dTasks.map(tk => {
+              const mem = folder.members.find(m => m.id === tk.assigneeId);
+              return `<div class="card px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="font-semibold truncate ${tk.status === 'done' ? 'line-through opacity-70' : ''}">${tk.status === 'done' ? '✅' : tk.status === 'in_progress' ? '⏳' : '⬜'} ${escapeHtml(tk.title)}</div>
+                  <div class="text-[10px] opacity-70">${tk.type === 'team' ? t('typeTeam') : tk.type === 'rest' ? t('typeRest') : (mem ? mem.name : t('unassigned'))}${tk.timeSlot ? ' · 🕒 ' + escapeHtml(tk.timeSlot) : ''}</div>
+                </div>
+                <span class="font-mono text-[10px] shrink-0">${formatTimer(tk.remainingSec)}</span>
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="flex items-center justify-between pt-2 border-t" style="border-color: var(--border-color);">
+            <button id="jumpToDayTasksBtn" class="px-3.5 py-2 rounded-xl card text-xs font-semibold">📋 Открыть в «Задачи и День»</button>
+            <button id="closeDayInspectBtn" class="px-4 py-2 rounded-xl card text-xs">${t('closeBtn')}</button>
+          </div>
+        </div>
+      `);
+      document.getElementById('closeDayInspectBtn').addEventListener('click', closeModal);
+      document.getElementById('addTaskInsideDayBtn').addEventListener('click', () => openTaskModal(null, null, d.id));
+      document.getElementById('jumpToDayTasksBtn').addEventListener('click', () => {
+        folder.activeDayId = d.id; state.activeTab = 'tasks'; saveState(); closeModal(); renderAll();
       });
     }
 
