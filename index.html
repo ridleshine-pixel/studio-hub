@@ -2335,7 +2335,8 @@
     }
 
     function renderTeamTab(container, folder) {
-      const isDir = state.roleMode === 'director';
+      const canEdit = sessionAccessMode === 'director';
+      const isDir = canEdit && state.roleMode === 'director';
       const allRoles = Array.from(new Set([...PRESET_ROLES, ...folder.members.flatMap(m => m.roles || [])]));
       const filtered = [...folder.members].sort((a, b) => (a.order || 0) - (b.order || 0)).filter(m => {
         const q = memberSearchQuery.toLowerCase().trim();
@@ -2369,7 +2370,7 @@
                     const stars = '★'.repeat(lv.stars) + '☆'.repeat(5 - lv.stars);
                     const initials = (m.name || '?').split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase();
                     return `<tr class="hover:bg-white/[0.03] transition-colors">
-                      <td class="py-3 px-3 font-mono font-bold text-sm"><div class="flex items-center gap-1"><span>#${m.order}</span><div class="flex flex-col"><button class="opacity-60 hover:opacity-100 leading-none" data-move-member="${m.id}" data-dir="-1">▲</button><button class="opacity-60 hover:opacity-100 leading-none" data-move-member="${m.id}" data-dir="1">▼</button></div></div></td>
+                      <td class="py-3 px-3 font-mono font-bold text-sm"><div class="flex items-center gap-1"><span>#${m.order}</span>${canEdit ? `<div class="flex flex-col"><button class="opacity-60 hover:opacity-100 leading-none" data-move-member="${m.id}" data-dir="-1">▲</button><button class="opacity-60 hover:opacity-100 leading-none" data-move-member="${m.id}" data-dir="1">▼</button></div>` : ''}</div></td>
                       <td class="py-3 px-3">${m.photo ? `<img src="${m.photo}" alt="${escapeHtml(m.name)}" class="w-11 h-11 rounded-xl object-cover border cursor-pointer" style="border-color: var(--accent);" data-zoom-photo="${m.id}" />` : `<div class="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm border" style="background: var(--accent-soft); border-color: var(--border-color);">${escapeHtml(initials)}</div>`}</td>
                       <td class="py-3 px-3"><div class="font-semibold text-sm">${escapeHtml(m.name)}</div><div class="text-[11px]" style="color: var(--text-muted);">${folder.tasks.filter(tk => tk.assigneeId === m.id && tk.status !== 'done').length} активн.</div></td>
                       <td class="py-3 px-3"><div class="flex flex-wrap gap-1">${(m.roles || []).map(r => `<span class="text-[11px] px-2 py-0.5 rounded-md accent-pill">${escapeHtml(r)}</span>`).join('')}</div></td>
