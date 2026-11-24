@@ -1399,10 +1399,10 @@
     /* =========================================================================
        3. DUAL PERSISTENCE (INDEXEDDB + LOCALSTORAGE + AUTO-DISK FILE)
     ========================================================================= */
-    // ВСТАВЬ СЮДА URL И КЛЮЧ SUPABASE ОДИН РАЗ В index.html НА GITHUB, ЧТОБЫ ЖИВЫЕ ССЫЛКИ РАБОТАЛИ У ВСЕХ БЕЗ НАСТРОЙКИ:
+    // Вшитая публичная конфигурация Supabase (Publishable key безопасен для фронтенда, защита через RLS)
     const DEFAULT_CLOUD_CONFIG = {
-      url: '', // например: 'https://xxxxxxxx.supabase.co'
-      key: ''  // ваш Supabase Publishable / anon key
+      url: 'https://nklwgmecdgpcjlorwztp.supabase.co',
+      key: 'sb_publishable_eBPc9mzD5QUjgRVla_cguA_RYawhciZ'
     };
 
     const CLOUD_SETUP_SQL = `create table if not exists hub_folders (
@@ -1414,10 +1414,21 @@ alter table hub_folders enable row level security;
 drop policy if exists "public_hub_access" on hub_folders;
 create policy "public_hub_access" on hub_folders for all using (true) with check (true);`;
 
+    function cleanCloudUrl(raw) {
+      return String(raw || '').trim().replace(/^\[+|\]+$/g, '').replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
+    }
+
     function getCloudConfig() {
-      const url = ((state && state.cloudUrl) || DEFAULT_CLOUD_CONFIG.url || '').trim().replace(/\/+$/, '');
-      const key = ((state && state.cloudKey) || DEFAULT_CLOUD_CONFIG.key || '').trim();
+      const url = cleanCloudUrl((state && state.cloudUrl) || DEFAULT_CLOUD_CONFIG.url || '');
+      const key = String((state && state.cloudKey) || DEFAULT_CLOUD_CONFIG.key || '').trim();
       return (url && key) ? { url, key } : null;
+    }
+
+    function buildCloudHeaders(cfg, extra = {}) {
+      // Supabase sb_publishable_ keys must be sent in apikey header ONLY (not Authorization: Bearer!)
+      const h = { 'apikey': cfg.key, ...extra };
+      if (/^eyJ/i.test(cfg.key)) h['Authorization'] = `Bearer ${cfg.key}`;
+      return h;
     }
 
     async function cloudFetchFolders(singleFolderId) {
@@ -1426,7 +1437,7 @@ create policy "public_hub_access" on hub_folders for all using (true) with check
       try {
         const filter = singleFolderId ? `?id=eq.${encodeURIComponent(singleFolderId)}&select=id,data` : `?select=id,data&order=updated_at.desc`;
         const resp = await fetch(`${cfg.url}/rest/v1/hub_folders${filter}`, {
-          headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+          headers: buildCloudHeaders(cfg)
         });
         if (!resp.ok) return null;
         const rows = await resp.json();
@@ -1440,12 +1451,10 @@ create policy "public_hub_access" on hub_folders for all using (true) with check
       try {
         const resp = await fetch(`${cfg.url}/rest/v1/hub_folders`, {
           method: 'POST',
-          headers: {
-            'apikey': cfg.key,
-            'Authorization': `Bearer ${cfg.key}`,
+          headers: buildCloudHeaders(cfg, {
             'Content-Type': 'application/json',
             'Prefer': 'resolution=merge-duplicates'
-          },
+          }),
           body: JSON.stringify({ id: folder.id, data: folder, updated_at: new Date().toISOString() })
         });
         return resp.ok;
@@ -1458,7 +1467,7 @@ create policy "public_hub_access" on hub_folders for all using (true) with check
       try {
         await fetch(`${cfg.url}/rest/v1/hub_folders?id=eq.${encodeURIComponent(folderId)}`, {
           method: 'DELETE',
-          headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+          headers: buildCloudHeaders(cfg)
         });
       } catch (e) {}
     }
@@ -3615,7 +3624,7 @@ create policy "public_hub_access" on hub_folders for all using (true) with check
         else fallbackCopy(CLOUD_SETUP_SQL);
       });
       document.getElementById('connectCloudBtn').addEventListener('click', async () => {
-        state.cloudUrl = document.getElementById('cloudUrlInput').value.trim().replace(/\/+$/, '');
+        state.cloudUrl = cleanCloudUrl(document.getElementById('cloudUrlInput').value);
         state.cloudKey = document.getElementById('cloudKeyInput').value.trim();
         saveState();
         if (!getCloudConfig()) { renderAll(); showToast(t('toastSaved')); return; }
