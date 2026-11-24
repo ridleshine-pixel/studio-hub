@@ -351,6 +351,56 @@
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
+    .view-animate {
+      animation: viewEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes viewEnter {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    #livingFxLayer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 3;
+      overflow: hidden;
+    }
+    .roam-actor {
+      position: absolute;
+      pointer-events: none;
+      will-change: transform;
+      opacity: 0.55;
+      filter: drop-shadow(0 0 8px var(--glow));
+    }
+    @keyframes roamRight {
+      0% { transform: translateX(-12vw) translateY(0px); }
+      25% { transform: translateX(22vw) translateY(-14px); }
+      50% { transform: translateX(52vw) translateY(0px); }
+      75% { transform: translateX(82vw) translateY(-16px); }
+      100% { transform: translateX(112vw) translateY(0px); }
+    }
+    @keyframes flyAcross {
+      0% { transform: translateX(-12vw) translateY(10px) scale(0.9); }
+      50% { transform: translateX(50vw) translateY(-22px) scale(1.05); }
+      100% { transform: translateX(112vw) translateY(8px) scale(0.95); }
+    }
+    @keyframes floatUp {
+      0% { transform: translateY(105vh) translateX(0px); opacity: 0; }
+      15% { opacity: 0.65; }
+      85% { opacity: 0.55; }
+      100% { transform: translateY(-15vh) translateX(28px); opacity: 0; }
+    }
+    @keyframes buildRise {
+      0% { transform: scaleY(0.15); opacity: 0.12; }
+      50% { transform: scaleY(1); opacity: 0.45; }
+      100% { transform: scaleY(0.15); opacity: 0.12; }
+    }
+    @keyframes shootingStar {
+      0% { transform: translate(-10vw, 5vh) rotate(22deg); opacity: 0; }
+      10% { opacity: 0.9; }
+      35% { transform: translate(110vw, 45vh) rotate(22deg); opacity: 0; }
+      100% { transform: translate(110vw, 45vh) rotate(22deg); opacity: 0; }
+    }
 
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
@@ -375,6 +425,7 @@
   <div id="scenicBackdrop"></div>
   <div id="cursorGlow"></div>
   <canvas id="fxCanvas"></canvas>
+  <div id="livingFxLayer"></div>
   <div id="fxVhsOverlay" class="fx-overlay-vhs"></div>
   <div id="fxGrainOverlay" class="fx-overlay-grain"></div>
   <div id="fxGridOverlay" class="fx-overlay-grid"></div>
@@ -405,9 +456,21 @@
       </div>
 
       <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+        <span id="accessModeBanner" class="hidden text-[11px] font-semibold px-2.5 py-1 rounded-full accent-pill"></span>
+
+        <button id="shareFolderHeaderBtn" class="hidden px-2.5 py-1.5 rounded-lg text-xs font-medium card flex items-center gap-1.5" title="Поделиться папкой (ссылки)">
+          <i data-lucide="link-2" class="w-3.5 h-3.5" style="color: var(--accent-2);"></i>
+          <span class="hidden sm:inline" data-i18n="shareFolderBtn">Поделиться</span>
+        </button>
+
         <button id="openThemeModalBtn" class="hidden px-2.5 py-1.5 rounded-lg text-xs font-medium card flex items-center gap-1.5">
           <i data-lucide="sparkles" class="w-3.5 h-3.5" style="color: var(--accent);"></i>
           <span class="hidden sm:inline" data-i18n="themeBtn">ИИ-Дизайн и FX</span>
+        </button>
+
+        <button id="toggleAmbientBtn" class="px-2.5 py-1.5 rounded-lg text-xs font-medium card flex items-center gap-1.5" title="Фоновая музыка под тему">
+          <i id="ambientIcon" data-lucide="music" class="w-3.5 h-3.5"></i>
+          <span id="ambientBtnText" class="hidden lg:inline">Фон: Выкл</span>
         </button>
 
         <select id="fxLevelSelect" class="py-1.5 px-2 text-xs hidden sm:inline-block" title="Уровень спецэффектов">
@@ -480,6 +543,29 @@
         savedDisk: 'Синхр. с файлом',
         themeBtn: 'ИИ-Дизайн и FX',
         shareBtn: 'Сейв / ИИ-ключ',
+        shareFolderBtn: 'Поделиться',
+        ambientOn: 'Фон: Вкл',
+        ambientOff: 'Фон: Выкл',
+        viewOnlyBadge: '👁 Только просмотр (Подотчётность)',
+        workerBadge: '🛠 Режим участника (Только выполнение)',
+        folderShareTitle: 'Ссылки на эту папку',
+        folderShareDesc: 'Создайте ссылку именно на эту папку с сохранением её темы, команды, задач и дорожной карты:',
+        viewLinkTitle: '1. Ссылка подотчётности (Только просмотр)',
+        viewLinkDesc: 'Получатель увидит весь прогресс, команду и карту в красивом оформлении, без лишних кнопок и без права редактирования.',
+        copyViewLinkBtn: 'Скопировать ссылку просмотра',
+        workLinkTitle: '2. Ссылка для участников (Только выполнение)',
+        workLinkDesc: 'Участники смогут отмечать выполнение задач и запускать таймеры, но не смогут добавлять, изменять или удалять задачи, людей и вехи.',
+        copyWorkLinkBtn: 'Скопировать ссылку для участников',
+        copyBackReportBtn: 'Скопировать отчёт для Главного',
+        viewLinkCopied: 'Ссылка «Только просмотр» скопирована!',
+        aiCheckTitle: 'ИИ-Анализ нагрузки и сложности задачи',
+        aiCheckChecking: 'ИИ оценивает сложность задачи, опыт участника и нагрузку на этот день...',
+        aiOverloadWarn: 'Внимание: возможна перегрузка или несоответствие опыта',
+        aiAssignAnyway: 'Да, всё равно назначить',
+        aiReassignBtn: 'Назначить рекомендованному:',
+        aiCancelAssign: 'Отменить и пересмотреть',
+        overloadTag: 'Перегруз!',
+        workLinkCopied: 'Ссылка для участников скопирована!',
         directorMode: 'Главный',
         memberMode: 'Участник',
         homeHeading: 'Мои папки проектов',
@@ -671,6 +757,29 @@
         savedDisk: 'Synced to Disk',
         themeBtn: 'AI Design & FX',
         shareBtn: 'Save / AI Key',
+        shareFolderBtn: 'Share',
+        ambientOn: 'Music: On',
+        ambientOff: 'Music: Off',
+        viewOnlyBadge: '👁 View-Only (Accountability)',
+        workerBadge: '🛠 Member Mode (Execute Only)',
+        folderShareTitle: 'Share This Project Folder',
+        folderShareDesc: 'Generate a dedicated link for this folder keeping its theme, team, tasks, and roadmap:',
+        viewLinkTitle: '1. Accountability Link (View-Only)',
+        viewLinkDesc: 'Viewers see all progress, team, and roadmap cleanly with zero edit buttons or clutter.',
+        copyViewLinkBtn: 'Copy View-Only Link',
+        workLinkTitle: '2. Team Member Link (Execute Tasks Only)',
+        workLinkDesc: 'Members can check off tasks and run timers, but cannot add, edit, or delete tasks, people, or milestones.',
+        copyWorkLinkBtn: 'Copy Member Link',
+        copyBackReportBtn: 'Copy Updated Report Link',
+        viewLinkCopied: 'View-Only link copied!',
+        aiCheckTitle: 'AI Workload & Task Difficulty Check',
+        aiCheckChecking: 'AI is analyzing task complexity, member seniority, and daily load...',
+        aiOverloadWarn: 'Warning: Potential overload or skill mismatch',
+        aiAssignAnyway: 'Yes, Assign Anyway',
+        aiReassignBtn: 'Assign to Recommended:',
+        aiCancelAssign: 'Cancel & Reconsider',
+        overloadTag: 'Overloaded!',
+        workLinkCopied: 'Member execution link copied!',
         directorMode: 'Director',
         memberMode: 'Member',
         homeHeading: 'My Project Folders',
@@ -886,6 +995,8 @@
       spineStyle: 'energy',
       flagIcon: 'flag',
       scenicLayers: { sky: 'nebula', celestial: 'none', terrain: 'horizon', monument: 'none' },
+      soundProfile: 'cyber_synth',
+      livingAnim: 'orbiting_satellites',
       customSvg: '',
       trophyNameRu: 'Кубок Мастера Студии',
       trophyNameEn: 'Studio Master Trophy',
@@ -1049,10 +1160,40 @@
       const moodLabelRu = moodTagsRu.length ? `${moodTagsRu[0]} · Авторский синтез` : `Уникальный мир «${raw.slice(0, 26)}»`;
       const moodLabelEn = moodTagsEn.length ? `${moodTagsEn[0]} · Custom Synthesis` : `Custom World «${raw.slice(0, 26)}»`;
 
+      // Axis 4: Per-Theme Sound Profile & Living Interface Animation
+      let soundProfile = 'cyber_synth';
+      let livingAnim = 'floating_lanterns';
+      if (/хоррор|ужас|птиц|ворон|голуб|vhs|орнитоз|horror|bird|crow|pigeon/.test(q)) {
+        soundProfile = 'horror_vhs'; livingAnim = 'flying_birds';
+      } else if (/звер|животн|кот|собак|волк|лис|кинолог|лес|природ|animal|cat|dog|wolf|fox|forest|nature/.test(q)) {
+        soundProfile = 'nature_breeze'; livingAnim = 'roaming_creatures';
+      } else if (/до нашей эры|древн|ссср|совет|камен|егип|пирамид|ancient|soviet|stone|egypt/.test(q)) {
+        soundProfile = 'ancient_monolith'; livingAnim = /город|ссср|совет|city|soviet/.test(q) ? 'living_city' : 'floating_lanterns';
+      } else if (/апокалип|постапок|шкаф|огон|лава|руин|apocal|wardrobe|fire|ruin/.test(q)) {
+        soundProfile = 'apoc_wind'; livingAnim = 'living_city';
+      } else if (/кибер|неон|город|мегаполис|робот|cyber|neon|city|urban/.test(q)) {
+        soundProfile = /дожд|нуар|rain|noir/.test(q) ? 'noir_rain' : 'cyber_synth'; livingAnim = 'living_city';
+      } else if (/океан|подвод|мор|вод|рыб|ocean|sea|underwater|fish/.test(q)) {
+        soundProfile = 'ocean_deep'; livingAnim = 'swimming_fish';
+      } else if (/космос|планет|звезд|sci-fi|space|star|orbit/.test(q)) {
+        soundProfile = 'cyber_synth'; livingAnim = 'orbiting_satellites';
+      } else if (/фэнтез|замок|сакур|маг|япон|fantasy|castle|sakura|magic/.test(q)) {
+        soundProfile = 'fantasy_harp'; livingAnim = 'floating_lanterns';
+      } else if (/дожд|нуар|детектив|rain|noir/.test(q)) {
+        soundProfile = 'noir_rain'; livingAnim = 'living_city';
+      } else {
+        const profiles = ['cyber_synth', 'fantasy_harp', 'nature_breeze', 'ancient_monolith', 'ocean_deep'];
+        const anims = ['floating_lanterns', 'orbiting_satellites', 'roaming_creatures', 'flying_birds', 'living_city'];
+        soundProfile = profiles[seed % profiles.length];
+        livingAnim = anims[seed % anims.length];
+      }
+
       return {
         prompt: raw,
         moodLabelRu,
         moodLabelEn,
+        soundProfile,
+        livingAnim,
         palette: {
           bgMain, bgPanel, bgCard, bgCardHover, border,
           accent, accentSoft: hexToRgba(accent, 0.21),
@@ -1335,6 +1476,8 @@
     }
 
     let state = null;
+    let sessionAccessMode = 'director'; // 'director' | 'view' | 'work'
+    let ambientEnabled = false;
     let memberSearchQuery = '';
     let memberRoleFilter = 'all';
     let memberLevelFilter = 'all';
@@ -1342,8 +1485,25 @@
 
     async function loadStateAsync() {
       try {
-        if (window.location.hash && window.location.hash.startsWith('#snap=')) {
-          const parsed = JSON.parse(decodeURIComponent(escape(atob(window.location.hash.slice(6)))));
+        const h = window.location.hash || '';
+        if (h.startsWith('#view=') || h.startsWith('#work=')) {
+          const isView = h.startsWith('#view=');
+          const payload = JSON.parse(decodeURIComponent(escape(atob(h.slice(6)))));
+          if (payload && payload.folder) {
+            sessionAccessMode = isView ? 'view' : 'work';
+            state = createDefaultState();
+            state.lang = payload.lang || 'ru';
+            state.folders = [payload.folder];
+            state.activeFolderId = payload.folder.id;
+            state.view = 'folder';
+            state.activeTab = isView ? 'roadmap' : 'tasks';
+            state.roleMode = 'member';
+            ensureFolderDays(payload.folder);
+            return;
+          }
+        }
+        if (h.startsWith('#snap=')) {
+          const parsed = JSON.parse(decodeURIComponent(escape(atob(h.slice(6)))));
           if (parsed && Array.isArray(parsed.folders)) { state = parsed; state.roleMode = 'member'; return; }
         }
       } catch (e) {}
@@ -1393,6 +1553,11 @@
     }
 
     function saveState() {
+      if (sessionAccessMode === 'view') return;
+      if (sessionAccessMode === 'work') {
+        try { localStorage.setItem('studio_hub_work_session_' + state.activeFolderId, JSON.stringify(state.folders[0])); } catch (e) {}
+        return;
+      }
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
       idbSave(state);
       writeToLinkedDiskFile(state);
@@ -1433,56 +1598,174 @@
       return audioCtx;
     }
 
+    function getCurrentSoundProfile() {
+      const f = state && state.view === 'folder' ? getActiveFolder() : null;
+      return (f && f.theme && f.theme.soundProfile) || 'cyber_synth';
+    }
+
     function playClickPop() {
       const ctx = getAudio();
       if (!ctx) return;
       try {
+        const prof = getCurrentSoundProfile();
         const now = ctx.currentTime;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(340, now);
-        osc.frequency.exponentialRampToValueAtTime(520, now + 0.05);
-        gain.gain.setValueAtTime(0.05, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        if (prof === 'horror_vhs') {
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(160, now); osc.frequency.exponentialRampToValueAtTime(75, now + 0.055);
+          gain.gain.setValueAtTime(0.045, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        } else if (prof === 'ancient_monolith' || prof === 'apoc_wind') {
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(210, now); osc.frequency.exponentialRampToValueAtTime(110, now + 0.07);
+          gain.gain.setValueAtTime(0.07, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+        } else if (prof === 'fantasy_harp' || prof === 'nature_breeze') {
+          osc.type = 'sine'; osc.frequency.setValueAtTime(620, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+          gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        } else if (prof === 'ocean_deep') {
+          osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(540, now + 0.07);
+          gain.gain.setValueAtTime(0.055, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        } else {
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(420, now); osc.frequency.exponentialRampToValueAtTime(640, now + 0.045);
+          gain.gain.setValueAtTime(0.045, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+        }
         osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(now); osc.stop(now + 0.07);
+        osc.start(now); osc.stop(now + 0.1);
       } catch (e) {}
     }
 
-    function playChime() {
-      const ctx = getAudio();
-      if (!ctx) return;
-      try {
-        const now = ctx.currentTime;
-        [523.25, 659.25, 783.99].forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, now + i * 0.08);
-          gain.gain.setValueAtTime(0.1, now + i * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.32);
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.start(now + i * 0.08); osc.stop(now + i * 0.08 + 0.34);
-        });
-      } catch (e) {}
+    // Musical Multi-Voice Procedural Theme Soundtrack Engine (Zero harsh noise!)
+    let ambientNodes = [];
+    let ambientStepTimer = null;
+    let activeAmbientProfile = null;
+    let ambientStepIndex = 0;
+
+    function stopAmbientSound() {
+      if (ambientStepTimer) { clearInterval(ambientStepTimer); ambientStepTimer = null; }
+      ambientNodes.forEach(n => { try { n.stop && n.stop(); n.disconnect && n.disconnect(); } catch (e) {} });
+      ambientNodes = [];
+      activeAmbientProfile = null;
     }
 
-    function playVictoryFanfare() {
+    function playSynthVoice(ctx, dest, freq, type, duration, peakGain, attack = 0.04, cutoff = 1800) {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const flt = ctx.createBiquadFilter();
+      const g = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      flt.type = 'lowpass';
+      flt.frequency.setValueAtTime(cutoff, now);
+      flt.frequency.exponentialRampToValueAtTime(Math.max(200, cutoff * 0.45), now + duration);
+      g.gain.setValueAtTime(0.0005, now);
+      g.gain.linearRampToValueAtTime(peakGain, now + attack);
+      g.gain.exponentialRampToValueAtTime(0.0005, now + duration);
+      osc.connect(flt); flt.connect(g); g.connect(dest);
+      osc.start(now); osc.stop(now + duration + 0.05);
+    }
+
+    function startAmbientSound(profile) {
+      if (!ambientEnabled || state.muted) { stopAmbientSound(); return; }
+      if (activeAmbientProfile === profile && ambientStepTimer) return;
+      stopAmbientSound();
       const ctx = getAudio();
       if (!ctx) return;
+      if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} }
+      activeAmbientProfile = profile;
+      ambientStepIndex = 0;
+
       try {
-        const now = ctx.currentTime;
-        [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, now + i * 0.11);
-          gain.gain.setValueAtTime(0.13, now + i * 0.11);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.11 + 0.6);
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.start(now + i * 0.11); osc.stop(now + i * 0.11 + 0.62);
-        });
+        const master = ctx.createGain();
+        master.gain.setValueAtTime(0.001, ctx.currentTime);
+        master.gain.linearRampToValueAtTime(0.24, ctx.currentTime + 1.0);
+
+        // Warm delay echo bus for lush atmosphere
+        const delay = ctx.createDelay();
+        delay.delayTime.value = profile === 'cyber_synth' ? 0.28 : 0.42;
+        const fb = ctx.createGain();
+        fb.gain.value = 0.34;
+        const wet = ctx.createGain();
+        wet.gain.value = 0.32;
+        delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(master);
+        master.connect(ctx.destination);
+        ambientNodes.push(master, delay, fb, wet);
+
+        // Connect helper to both dry & echo bus
+        const bus = ctx.createGain();
+        bus.connect(master);
+        bus.connect(delay);
+        ambientNodes.push(bus);
+
+        const TRACKS = {
+          horror_vhs: {
+            tempoMs: 780,
+            bass: [55, 55, 58.27, 55, 49, 49, 55, 51.91], // Dark A minor / Phrygian tension
+            melody: [440, 0, 523.25, 493.88, 0, 466.16, 440, 0, 329.63, 0, 349.23, 329.63, 0, 293.66, 0, 0],
+            leadType: 'sine', bassType: 'triangle', cutoff: 900, dur: 1.5
+          },
+          ancient_monolith: {
+            tempoMs: 880,
+            bass: [73.42, 73.42, 110, 73.42, 65.41, 65.41, 98, 73.42], // Solemn D Phrygian monumental
+            melody: [293.66, 0, 311.13, 293.66, 220, 0, 261.63, 220, 293.66, 349.23, 311.13, 293.66, 0, 220, 0, 0],
+            leadType: 'triangle', bassType: 'sawtooth', cutoff: 760, dur: 1.7
+          },
+          cyber_synth: {
+            tempoMs: 260,
+            bass: [110, 110, 110, 110, 87.31, 87.31, 87.31, 87.31, 130.81, 130.81, 130.81, 130.81, 98, 98, 98, 98], // Real Synthwave Am-F-C-G
+            melody: [440, 523.25, 659.25, 523.25, 349.23, 440, 523.25, 440, 523.25, 659.25, 783.99, 659.25, 392, 493.88, 587.33, 493.88],
+            leadType: 'sawtooth', bassType: 'triangle', cutoff: 1450, dur: 0.42
+          },
+          fantasy_harp: {
+            tempoMs: 420,
+            bass: [130.81, 0, 196, 0, 110, 0, 164.81, 0],
+            melody: [523.25, 587.33, 659.25, 783.99, 659.25, 587.33, 523.25, 392, 440, 523.25, 659.25, 523.25, 440, 392, 329.63, 0],
+            leadType: 'triangle', bassType: 'sine', cutoff: 1700, dur: 1.15
+          },
+          ocean_deep: {
+            tempoMs: 680,
+            bass: [82.41, 0, 123.47, 0, 98, 0, 146.83, 0],
+            melody: [329.63, 392, 493.88, 0, 587.33, 493.88, 0, 392, 293.66, 392, 440, 0, 493.88, 0, 392, 0],
+            leadType: 'sine', bassType: 'sine', cutoff: 1100, dur: 1.8
+          },
+          nature_breeze: {
+            tempoMs: 460,
+            bass: [146.83, 0, 220, 0, 130.81, 0, 196, 0],
+            melody: [587.33, 659.25, 739.99, 880, 0, 739.99, 659.25, 587.33, 523.25, 587.33, 659.25, 0, 783.99, 659.25, 0, 0],
+            leadType: 'sine', bassType: 'triangle', cutoff: 1900, dur: 0.95
+          },
+          noir_rain: {
+            tempoMs: 740,
+            bass: [73.42, 0, 98, 0, 65.41, 0, 110, 0], // Dm9 - G13 - Cmaj9 - A7 noir jazz
+            melody: [349.23, 440, 523.25, 659.25, 0, 493.88, 440, 392, 329.63, 392, 493.88, 587.33, 0, 440, 392, 0],
+            leadType: 'triangle', bassType: 'sine', cutoff: 880, dur: 1.65
+          },
+          apoc_wind: {
+            tempoMs: 620,
+            bass: [65.41, 65.41, 0, 77.78, 73.42, 0, 58.27, 0],
+            melody: [261.63, 311.13, 392, 0, 311.13, 293.66, 261.63, 0, 233.08, 261.63, 311.13, 0, 293.66, 0, 0, 0],
+            leadType: 'triangle', bassType: 'sawtooth', cutoff: 820, dur: 1.35
+          }
+        };
+
+        const tr = TRACKS[profile] || TRACKS.cyber_synth;
+
+        function playStep() {
+          if (!ambientEnabled || state.muted) return;
+          const bFreq = tr.bass[ambientStepIndex % tr.bass.length];
+          const mFreq = tr.melody[ambientStepIndex % tr.melody.length];
+          if (bFreq > 0) {
+            playSynthVoice(ctx, master, bFreq, tr.bassType, tr.tempoMs / 1000 * 1.9, 0.14, 0.06, 420);
+          }
+          if (mFreq > 0) {
+            playSynthVoice(ctx, bus, mFreq, tr.leadType, tr.dur, 0.09, 0.03, tr.cutoff);
+          }
+          // Subtle birdsong chirp for nature or eerie crow harmonic for horror
+          if (profile === 'nature_breeze' && ambientStepIndex % 11 === 5) {
+            playSynthVoice(ctx, bus, 1760, 'sine', 0.14, 0.035, 0.02, 2600);
+          }
+          ambientStepIndex += 1;
+        }
+
+        playStep();
+        ambientStepTimer = setInterval(playStep, tr.tempoMs);
       } catch (e) {}
     }
 
@@ -1669,7 +1952,58 @@
 
       const brandSlot = document.getElementById('brandIconSlot');
       if (brandSlot) brandSlot.innerHTML = getThemeFlagSVG(theme.flagIcon, p.accent, 22);
+      renderLivingAnimations(theme);
       startFxLoop(theme);
+      if (ambientEnabled && !state.muted) startAmbientSound(theme.soundProfile || 'cyber_synth');
+    }
+
+    function renderLivingAnimations(theme) {
+      const layer = document.getElementById('livingFxLayer');
+      if (!layer) return;
+      if (state.fxLevel === 'off') { layer.innerHTML = ''; return; }
+      const c1 = theme.palette.accent;
+      const c2 = theme.palette.accent2;
+      const anim = theme.livingAnim || 'floating_lanterns';
+
+      if (anim === 'roaming_creatures') {
+        const creatureSvg = `<svg width="46" height="32" viewBox="0 0 46 32" fill="${c1}"><ellipse cx="22" cy="18" rx="11" ry="6"/><circle cx="33" cy="12" r="5"/><polygon points="30,8 32,2 35,8"/><polygon points="34,8 37,3 38,9"/><path d="M12,18 Q4,12 6,22" stroke="${c2}" stroke-width="3" fill="none" stroke-linecap="round"/><line x1="16" y1="23" x2="14" y2="30" stroke="${c1}" stroke-width="2.5"/><line x1="27" y1="23" x2="29" y2="30" stroke="${c1}" stroke-width="2.5"/></svg>`;
+        layer.innerHTML = `
+          <div class="roam-actor" style="bottom:8px; left:0; animation: roamRight 19s linear infinite;">${creatureSvg}</div>
+          <div class="roam-actor" style="bottom:14px; left:0; animation: roamRight 27s linear -11s infinite; opacity:0.35;">${creatureSvg}</div>
+        `;
+      } else if (anim === 'flying_birds') {
+        const birdSvg = `<svg width="42" height="22" viewBox="0 0 42 22" fill="none" stroke="${c1}" stroke-width="2.2" stroke-linecap="round"><path d="M2 14 Q11 2 21 12 Q31 2 40 14"/></svg>`;
+        layer.innerHTML = `
+          <div class="roam-actor" style="top:14%; left:0; animation: flyAcross 16s linear infinite;">${birdSvg}</div>
+          <div class="roam-actor" style="top:24%; left:0; animation: flyAcross 23s linear -9s infinite; opacity:0.38;">${birdSvg}</div>
+          <div class="roam-actor" style="top:19%; left:0; animation: flyAcross 29s linear -18s infinite; opacity:0.28;">${birdSvg}</div>
+        `;
+      } else if (anim === 'swimming_fish') {
+        const fishSvg = `<svg width="44" height="22" viewBox="0 0 44 22" fill="${c2}"><ellipse cx="24" cy="11" rx="12" ry="6"/><polygon points="12,11 2,4 2,18"/><circle cx="31" cy="9" r="1.5" fill="#000"/></svg>`;
+        layer.innerHTML = `
+          <div class="roam-actor" style="top:32%; left:0; animation: flyAcross 22s linear infinite;">${fishSvg}</div>
+          <div class="roam-actor" style="bottom:16%; left:0; animation: flyAcross 18s linear -7s infinite; opacity:0.4;">${fishSvg}</div>
+        `;
+      } else if (anim === 'living_city') {
+        layer.innerHTML = `
+          <div class="roam-actor" style="bottom:0; left:6%; width:36px; height:95px; background:linear-gradient(180deg, ${c1}, transparent); transform-origin:bottom; animation: buildRise 9s ease-in-out infinite;"></div>
+          <div class="roam-actor" style="bottom:0; left:14%; width:26px; height:130px; background:linear-gradient(180deg, ${c2}, transparent); transform-origin:bottom; animation: buildRise 12s ease-in-out -4s infinite;"></div>
+          <div class="roam-actor" style="bottom:0; right:9%; width:42px; height:115px; background:linear-gradient(180deg, ${c1}, transparent); transform-origin:bottom; animation: buildRise 11s ease-in-out -2s infinite;"></div>
+          <div class="roam-actor" style="top:22%; left:0; width:90px; height:2px; background:linear-gradient(90deg, transparent, ${c2}, transparent); animation: flyAcross 13s linear infinite;"></div>
+        `;
+      } else if (anim === 'orbiting_satellites') {
+        layer.innerHTML = `
+          <div class="roam-actor" style="top:12%; left:0; width:120px; height:2px; background:linear-gradient(90deg, transparent, #fff, ${c1}); animation: shootingStar 9s linear infinite;"></div>
+          <div class="roam-actor" style="top:28%; left:0; width:80px; height:2px; background:linear-gradient(90deg, transparent, ${c2}); animation: shootingStar 14s linear -5s infinite;"></div>
+        `;
+      } else {
+        const orbSvg = `<svg width="24" height="30" viewBox="0 0 24 30"><rect x="6" y="6" width="12" height="16" rx="4" fill="${c1}" opacity="0.65"/><circle cx="12" cy="14" r="3" fill="#fff"/></svg>`;
+        layer.innerHTML = `
+          <div class="roam-actor" style="left:12%; animation: floatUp 17s linear infinite;">${orbSvg}</div>
+          <div class="roam-actor" style="left:48%; animation: floatUp 23s linear -8s infinite;">${orbSvg}</div>
+          <div class="roam-actor" style="left:82%; animation: floatUp 19s linear -13s infinite;">${orbSvg}</div>
+        `;
+      }
     }
 
     /* =========================================================================
@@ -1747,9 +2081,27 @@
       const folder = inFolder ? getActiveFolder() : null;
       applyTheme(folder ? folder.theme : HUB_NEUTRAL_THEME);
 
-      document.getElementById('backToHomeBtn').classList.toggle('hidden', !inFolder);
-      document.getElementById('openThemeModalBtn').classList.toggle('hidden', !inFolder);
+      const isRestricted = sessionAccessMode === 'view' || sessionAccessMode === 'work';
+      document.getElementById('backToHomeBtn').classList.toggle('hidden', !inFolder || isRestricted);
+      document.getElementById('shareFolderHeaderBtn').classList.toggle('hidden', !inFolder || sessionAccessMode === 'view');
+      document.getElementById('openThemeModalBtn').classList.toggle('hidden', !inFolder || isRestricted);
+      document.getElementById('toggleRoleLockBtn').classList.toggle('hidden', isRestricted);
+      document.getElementById('openShareModalBtn').classList.toggle('hidden', isRestricted);
       document.getElementById('folderNavBar').classList.toggle('hidden', !inFolder);
+
+      const modeBadge = document.getElementById('accessModeBanner');
+      if (sessionAccessMode === 'view') {
+        modeBadge.textContent = t('viewOnlyBadge');
+        modeBadge.classList.remove('hidden');
+      } else if (sessionAccessMode === 'work') {
+        modeBadge.textContent = t('workerBadge');
+        modeBadge.classList.remove('hidden');
+      } else {
+        modeBadge.classList.add('hidden');
+      }
+
+      document.getElementById('ambientBtnText').textContent = ambientEnabled ? t('ambientOn') : t('ambientOff');
+      document.getElementById('toggleAmbientBtn').classList.toggle('accent-pill', ambientEnabled);
 
       document.getElementById('headerTitle').textContent = folder ? folder.name : t('hubTitle');
       document.getElementById('headerSubtitle').textContent = folder
@@ -1759,7 +2111,8 @@
       document.getElementById('toggleLangBtn').textContent = state.lang.toUpperCase();
       document.getElementById('fxLevelSelect').value = state.fxLevel;
 
-      const isDir = state.roleMode === 'director';
+      const canEdit = sessionAccessMode === 'director';
+      const isDir = canEdit && state.roleMode === 'director';
       document.getElementById('roleLockText').textContent = isDir ? t('directorMode') : t('memberMode');
       const roleIcon = document.getElementById('roleLockIcon');
       roleIcon.setAttribute('data-lucide', isDir ? 'shield-check' : 'lock');
@@ -1821,6 +2174,7 @@
                       <div class="w-10 h-10 rounded-xl flex items-center justify-center border shrink-0" style="background:${p.accentSoft}; border-color:${p.accent};">${getThemeFlagSVG(f.theme.flagIcon, p.accent, 22)}</div>
                       <div class="flex items-center gap-1">
                         ${(f.trophies && f.trophies.length) ? `<span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/35">🏆 ${f.trophies.length}</span>` : ''}
+                        <button type="button" data-share-folder="${f.id}" class="p-1.5 rounded-lg bg-black/50 hover:bg-white/20 z-20" style="color:${p.accent};" title="${t('shareFolderBtn')}"><i data-lucide="link-2" class="w-3.5 h-3.5"></i></button>
                         ${isDir ? `<button type="button" data-del-folder="${f.id}" class="p-1.5 rounded-lg bg-black/50 text-red-400 hover:bg-red-500/30 z-20" title="${t('del')}"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
                       </div>
                     </div>
@@ -1852,10 +2206,13 @@
       document.getElementById('homeNewFolderCard').addEventListener('click', openNewFolderWizard);
       container.querySelectorAll('[data-open-folder]').forEach(card => {
         card.addEventListener('click', (e) => {
-          if (e.target.closest('[data-del-folder]')) return;
+          if (e.target.closest('[data-del-folder]') || e.target.closest('[data-share-folder]')) return;
           state.activeFolderId = card.dataset.openFolder; state.view = 'folder'; state.activeTab = 'team'; state.taskFilterMemberId = 'all';
           saveState(); renderAll();
         });
+      });
+      container.querySelectorAll('[data-share-folder]').forEach(btn => {
+        btn.addEventListener('click', (e) => { e.stopPropagation(); openFolderShareModal(btn.dataset.shareFolder); });
       });
       container.querySelectorAll('[data-del-folder]').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -1948,8 +2305,9 @@
        10. FOLDER VIEW & TEAM TAB
     ========================================================================= */
     function renderFolderView(container, folder) {
+      const hideEdit = sessionAccessMode === 'view' || sessionAccessMode === 'work';
       container.innerHTML = `
-        <div class="space-y-4">
+        <div class="space-y-4 view-animate">
           <div class="panel rounded-2xl p-4 sm:p-5 relative overflow-hidden flex flex-wrap items-center justify-between gap-3">
             <div class="absolute inset-0 opacity-45 pointer-events-none">${composeScenicSVG(folder.theme)}</div>
             <div class="relative z-10 flex items-center gap-3 min-w-0">
@@ -1959,14 +2317,16 @@
                 <div class="text-xs truncate" style="color: var(--text-muted);">🎨 ${escapeHtml(folder.theme.prompt)} · ${state.lang === 'ru' ? folder.theme.moodLabelRu : folder.theme.moodLabelEn}</div>
               </div>
             </div>
-            <div class="relative z-10 flex items-center gap-2">
+            ${hideEdit ? '' : `<div class="relative z-10 flex items-center gap-2">
+              <button id="bannerShareFolderBtn" class="px-3.5 py-2 rounded-xl card text-xs font-semibold flex items-center gap-1.5"><i data-lucide="link-2" class="w-3.5 h-3.5" style="color: var(--accent-2);"></i><span>${t('shareFolderBtn')}</span></button>
               <button id="bannerEditThemeBtn" class="px-3.5 py-2 rounded-xl card text-xs font-semibold flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5" style="color: var(--accent);"></i><span>${t('themeBtn')}</span></button>
-            </div>
+            </div>`}
           </div>
           <div id="tabBodyRoot"></div>
         </div>
       `;
-      document.getElementById('bannerEditThemeBtn').addEventListener('click', openThemeModal);
+      const bEdit = document.getElementById('bannerEditThemeBtn'); if (bEdit) bEdit.addEventListener('click', openThemeModal);
+      const bShare = document.getElementById('bannerShareFolderBtn'); if (bShare) bShare.addEventListener('click', () => openFolderShareModal(folder.id));
       const body = document.getElementById('tabBodyRoot');
       if (state.activeTab === 'team') renderTeamTab(body, folder);
       else if (state.activeTab === 'tasks') renderTasksTab(body, folder);
@@ -1994,10 +2354,10 @@
               <select id="memberRoleFilterSel"><option value="all">${t('allRoles')}</option>${allRoles.map(r => `<option value="${escapeHtml(r)}" ${memberRoleFilter === r ? 'selected' : ''}>${escapeHtml(r)}</option>`).join('')}</select>
               <select id="memberLevelFilterSel"><option value="all">${t('allLevels')}</option>${SKILL_LEVELS.map(lv => `<option value="${lv.id}" ${memberLevelFilter === lv.id ? 'selected' : ''}>${state.lang === 'ru' ? lv.ru : lv.en}</option>`).join('')}</select>
             </div>
-            <div class="flex items-center gap-2">
+            ${canEdit ? `<div class="flex items-center gap-2">
               <button id="manageColsBtn" class="px-3.5 py-2 rounded-xl card text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="columns-3" class="w-4 h-4" style="color: var(--accent);"></i> <span>${t('manageColsBtn')}</span></button>
               <button id="addMemberBtn" class="btn-accent px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="user-plus" class="w-4 h-4"></i> <span>${t('addMember')}</span></button>
-            </div>
+            </div>` : ''}
           </div>
           <div class="panel rounded-2xl overflow-hidden">
             <div class="overflow-x-auto">
@@ -2024,7 +2384,7 @@
                         }
                         return `<td class="py-3 px-3 text-xs">${escapeHtml(val)}</td>`;
                       }).join('')}
-                      <td class="py-3 px-3 text-right"><div class="inline-flex items-center gap-1"><button class="p-1.5 rounded-lg card" data-edit-member="${m.id}" title="${t('edit')}"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>${isDir ? `<button class="p-1.5 rounded-lg card text-red-400 hover:bg-red-500/20" data-delete-member="${m.id}" title="${t('del')}"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}</div></td>
+                      <td class="py-3 px-3 text-right"><div class="inline-flex items-center gap-1">${canEdit ? `<button class="p-1.5 rounded-lg card" data-edit-member="${m.id}" title="${t('edit')}"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>` : '<span class="text-xs opacity-40">—</span>'}${isDir ? `<button class="p-1.5 rounded-lg card text-red-400 hover:bg-red-500/20" data-delete-member="${m.id}" title="${t('del')}"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}</div></td>
                     </tr>`;
                   }).join('')}
                 </tbody>
@@ -2032,7 +2392,7 @@
             </div>
             <div class="p-3 border-t flex flex-wrap items-center justify-between gap-2" style="border-color: var(--border-color); background: rgba(0,0,0,0.18);">
               <span class="text-xs" style="color: var(--text-muted);">👥 ${folder.members.length} · ${t('quickAddMemberHint')}</span>
-              <button id="addMemberBottomBtn" class="px-3 py-1.5 rounded-lg card text-xs font-semibold flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5" style="color: var(--accent);"></i> ${t('addMember')}</button>
+              ${canEdit ? `<button id="addMemberBottomBtn" class="px-3 py-1.5 rounded-lg card text-xs font-semibold flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5" style="color: var(--accent);"></i> ${t('addMember')}</button>` : ''}
             </div>
           </div>
         </div>
@@ -2046,9 +2406,9 @@
       });
       document.getElementById('memberRoleFilterSel').addEventListener('change', (e) => { memberRoleFilter = e.target.value; renderTeamTab(container, folder); if (window.lucide) lucide.createIcons(); });
       document.getElementById('memberLevelFilterSel').addEventListener('change', (e) => { memberLevelFilter = e.target.value; renderTeamTab(container, folder); if (window.lucide) lucide.createIcons(); });
-      document.getElementById('manageColsBtn').addEventListener('click', openCustomColumnsModal);
-      document.getElementById('addMemberBtn').addEventListener('click', () => openMemberModal(null));
-      document.getElementById('addMemberBottomBtn').addEventListener('click', () => openMemberModal(null));
+      const mcBtn = document.getElementById('manageColsBtn'); if (mcBtn) mcBtn.addEventListener('click', openCustomColumnsModal);
+      const amBtn = document.getElementById('addMemberBtn'); if (amBtn) amBtn.addEventListener('click', () => openMemberModal(null));
+      const ambBtn = document.getElementById('addMemberBottomBtn'); if (ambBtn) ambBtn.addEventListener('click', () => openMemberModal(null));
       container.querySelectorAll('[data-edit-member]').forEach(btn => btn.addEventListener('click', () => openMemberModal(btn.dataset.editMember)));
       container.querySelectorAll('[data-delete-member]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2215,7 +2575,9 @@
     ========================================================================= */
     function renderTasksTab(container, folder) {
       ensureFolderDays(folder);
-      const isDir = state.roleMode === 'director';
+      const canManage = sessionAccessMode === 'director';
+      const canExecute = sessionAccessMode === 'director' || sessionAccessMode === 'work';
+      const isDir = canManage && state.roleMode === 'director';
       const sortedMembers = [...folder.members].sort((a, b) => a.order - b.order);
       const dayScoped = folder.activeDayId === 'all'
         ? folder.tasks
@@ -2235,10 +2597,10 @@
               <button id="viewAssignBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${state.taskViewMode === 'assign' ? 'accent-pill' : ''}">👥 ${t('viewAssign')}</button>
               <button id="viewMsBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${state.taskViewMode === 'milestones' ? 'accent-pill' : ''}">🚩 ${t('viewByMilestone')}</button>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
+            ${canManage ? `<div class="flex flex-wrap items-center gap-2">
               <button id="quickBreakBtn" class="px-3 py-2 rounded-xl text-xs font-semibold card text-emerald-300 border-emerald-500/30 flex items-center gap-1"><i data-lucide="coffee" class="w-3.5 h-3.5"></i> <span>${t('addBreak')}</span></button>
               <button id="addTaskBtn" class="btn-accent px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="plus" class="w-4 h-4"></i> <span>${t('addTask')}</span></button>
-            </div>
+            </div>` : ''}
           </div>
 
           <!-- Day Switcher Bar (Day 1, Day 2, + New Day, Carry Over) -->
@@ -2254,9 +2616,9 @@
                 </button>`;
               }).join('')}
               <button type="button" data-select-day="all" class="px-3 py-1.5 rounded-xl text-xs font-semibold border ${folder.activeDayId === 'all' ? 'accent-pill' : 'card'}">🗂 ${t('allDaysOption')}</button>
-              <button type="button" id="addNewDayBtn" class="px-3 py-1.5 rounded-xl text-xs font-bold btn-accent">${t('newDayBtn')}</button>
+              ${canManage ? `<button type="button" id="addNewDayBtn" class="px-3 py-1.5 rounded-xl text-xs font-bold btn-accent">${t('newDayBtn')}</button>` : ''}
             </div>
-            ${folder.activeDayId !== 'all' ? `
+            ${canManage && folder.activeDayId !== 'all' ? `
               <button type="button" id="carryOverDayBtn" class="px-3 py-1.5 rounded-xl text-xs font-semibold card flex items-center gap-1" title="Перенести невыполненные задачи в следующий день">
                 <i data-lucide="corner-down-right" class="w-3.5 h-3.5" style="color: var(--accent);"></i>
                 <span>${t('carryOverBtn')}</span>
@@ -2271,9 +2633,13 @@
               <button class="px-3 py-2 rounded-xl text-xs font-medium border ${state.taskFilterMemberId === 'team' ? 'accent-pill' : 'card'}" data-filter-target="team" data-drop-type="team">🤝 ${t('teamTasksFilter')} (${folder.tasks.filter(x => x.type === 'team').length})</button>
               <button class="px-3 py-2 rounded-xl text-xs font-medium border ${state.taskFilterMemberId === 'rest' ? 'accent-pill' : 'card'}" data-filter-target="rest" data-drop-type="rest">☕ ${t('restTasksFilter')} (${folder.tasks.filter(x => x.type === 'rest').length})</button>
               ${sortedMembers.map(m => {
-                const count = folder.tasks.filter(x => x.assigneeId === m.id && x.status !== 'done').length;
+                const dayTasksForM = dayScoped.filter(x => x.assigneeId === m.id && x.status !== 'done');
+                const count = dayTasksForM.length;
+                const mins = dayTasksForM.reduce((s, x) => s + (Number(x.durationMin) || 30), 0);
+                const cap = LEVEL_DAILY_CAP_MIN[m.level] || 300;
+                const loadDot = mins > cap ? '🔴' : mins > cap * 0.7 ? '🟡' : '🟢';
                 const active = state.taskFilterMemberId === m.id;
-                return `<div class="px-3 py-1.5 rounded-xl cursor-pointer border transition-all ${active ? 'accent-pill' : 'card'}" data-filter-target="${m.id}" data-drop-member="${m.id}"><div class="text-xs font-semibold flex items-center gap-1.5"><span>${escapeHtml(m.name)}</span><span class="text-[10px] px-1.5 rounded bg-white/10">${count}</span></div><div class="text-[10px] truncate max-w-[190px]" style="color: var(--text-muted);">${(m.roles || []).join(' • ')}</div></div>`;
+                return `<div class="px-3 py-1.5 rounded-xl cursor-pointer border transition-all ${active ? 'accent-pill' : 'card'}" data-filter-target="${m.id}" data-drop-member="${m.id}"><div class="text-xs font-semibold flex items-center gap-1.5"><span>${escapeHtml(m.name)}</span><span class="text-[10px] px-1.5 rounded bg-white/10">${loadDot} ${count} (${mins}${t('minUnit')})</span></div><div class="text-[10px] truncate max-w-[205px]" style="color: var(--text-muted);">${(m.roles || []).join(' • ')}</div></div>`;
               }).join('')}
             </div>
           </div>
@@ -2285,14 +2651,14 @@
       document.getElementById('viewTodayBtn').addEventListener('click', () => { state.taskViewMode = 'today'; saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons(); });
       document.getElementById('viewAssignBtn').addEventListener('click', () => { state.taskViewMode = 'assign'; saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons(); });
       document.getElementById('viewMsBtn').addEventListener('click', () => { state.taskViewMode = 'milestones'; saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons(); });
-      document.getElementById('addTaskBtn').addEventListener('click', () => openTaskModal(null, null));
+      const atBtn = document.getElementById('addTaskBtn'); if (atBtn) atBtn.addEventListener('click', () => openTaskModal(null, null));
       container.querySelectorAll('[data-select-day]').forEach(btn => {
         btn.addEventListener('click', () => {
           folder.activeDayId = btn.dataset.selectDay;
           saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons();
         });
       });
-      document.getElementById('addNewDayBtn').addEventListener('click', () => {
+      const andBtn = document.getElementById('addNewDayBtn'); if (andBtn) andBtn.addEventListener('click', () => {
         const nextNum = folder.days.length ? Math.max(...folder.days.map(d => d.num || 0)) + 1 : 1;
         const newDay = { id: uid('day'), num: nextNum, title: `${t('dayLabel')} ${nextNum}`, date: new Date().toISOString().slice(0, 10) };
         folder.days.push(newDay);
@@ -2317,7 +2683,7 @@
           showToast(`${t('carryOverDone')} ${targetDay.title} (${unfinished.length})`);
         });
       }
-      document.getElementById('quickBreakBtn').addEventListener('click', () => {
+      const qbBtn = document.getElementById('quickBreakBtn'); if (qbBtn) qbBtn.addEventListener('click', () => {
         const targetDayId = folder.activeDayId === 'all' ? folder.days[folder.days.length - 1].id : folder.activeDayId;
         folder.tasks.push({ id: uid('t'), title: state.lang === 'ru' ? 'Перерыв / Отдых 30 минут' : 'Team Break / 30m Rest', description: state.lang === 'ru' ? 'Отдых от экрана и восстановление сил.' : 'Rest away from screens.', type: 'rest', assigneeId: '', status: 'todo', durationMin: 30, remainingSec: 1800, running: false, timeSlot: '15:00 - 15:30', milestoneId: '', dayId: targetDayId, onRoadmap: false, isToday: true });
         saveState(); renderAll(); showToast(t('toastSaved'));
@@ -2398,7 +2764,12 @@
             e.preventDefault(); el.classList.remove('drop-target-active');
             const tid = e.dataTransfer.getData('text/plain') || dragTaskId;
             const tk = folder.tasks.find(x => x.id === tid); if (!tk) return;
-            if (el.dataset.dropMember) { tk.type = 'personal'; tk.assigneeId = el.dataset.dropMember; }
+            if (el.dataset.dropMember) {
+              runWorkloadIntelligenceCheck(folder, el.dataset.dropMember, tk.dayId, tk.title, tk.description, tk.durationMin, tk.id, (finalId) => {
+                tk.type = 'personal'; tk.assigneeId = finalId; saveState(); renderAll(); showToast(t('toastSaved'));
+              });
+              return;
+            }
             else if (el.dataset.dropType === 'team') { tk.type = 'team'; tk.assigneeId = ''; }
             else if (el.dataset.dropType === 'rest') { tk.type = 'rest'; tk.assigneeId = ''; }
             saveState(); renderAll(); showToast(t('toastSaved'));
@@ -2409,6 +2780,7 @@
       container.querySelectorAll('[data-add-task-ms]').forEach(btn => btn.addEventListener('click', () => openTaskModal(null, btn.dataset.addTaskMs)));
       container.querySelectorAll('[data-cycle-status]').forEach(btn => {
         btn.addEventListener('click', () => {
+          if (sessionAccessMode === 'view') return;
           const tk = folder.tasks.find(x => x.id === btn.dataset.cycleStatus); if (!tk) return;
           const order = ['todo', 'in_progress', 'done'];
           const prev = tk.status;
@@ -2419,17 +2791,25 @@
         });
       });
       container.querySelectorAll('[data-quick-assign]').forEach(sel => {
+        if (sessionAccessMode !== 'director') sel.disabled = true;
         sel.addEventListener('change', () => {
+          if (sessionAccessMode !== 'director') return;
           const tk = folder.tasks.find(x => x.id === sel.dataset.quickAssign); if (!tk) return;
           const val = sel.value;
-          if (val === '__team') { tk.type = 'team'; tk.assigneeId = ''; }
-          else if (val === '__rest') { tk.type = 'rest'; tk.assigneeId = ''; }
-          else { tk.type = 'personal'; tk.assigneeId = val; }
-          saveState(); renderAll();
+          if (val === '__team') { tk.type = 'team'; tk.assigneeId = ''; saveState(); renderAll(); }
+          else if (val === '__rest') { tk.type = 'rest'; tk.assigneeId = ''; saveState(); renderAll(); }
+          else if (!val) { tk.type = 'personal'; tk.assigneeId = ''; saveState(); renderAll(); }
+          else {
+            runWorkloadIntelligenceCheck(folder, val, tk.dayId, tk.title, tk.description, tk.durationMin, tk.id, (finalId) => {
+              tk.type = 'personal'; tk.assigneeId = finalId; saveState(); renderAll();
+            });
+          }
         });
       });
       container.querySelectorAll('[data-timer-toggle]').forEach(btn => {
+        if (sessionAccessMode === 'view') btn.classList.add('hidden');
         btn.addEventListener('click', () => {
+          if (sessionAccessMode === 'view') return;
           const tk = folder.tasks.find(x => x.id === btn.dataset.timerToggle); if (!tk) return;
           if (!tk.running && tk.remainingSec <= 0) tk.remainingSec = (tk.durationMin || 30) * 60;
           tk.running = !tk.running; tk.runningSince = tk.running ? Date.now() : null; if (tk.running && tk.status === 'todo') tk.status = 'in_progress';
@@ -2437,19 +2817,145 @@
         });
       });
       container.querySelectorAll('[data-timer-reset]').forEach(btn => {
+        if (sessionAccessMode === 'view') btn.classList.add('hidden');
         btn.addEventListener('click', () => {
+          if (sessionAccessMode === 'view') return;
           const tk = folder.tasks.find(x => x.id === btn.dataset.timerReset); if (!tk) return;
           tk.running = false; tk.runningSince = null; tk.remainingSec = (tk.durationMin || 30) * 60;
           saveState(); renderTasksTab(container, folder); if (window.lucide) lucide.createIcons();
         });
       });
-      container.querySelectorAll('[data-edit-task]').forEach(btn => btn.addEventListener('click', () => openTaskModal(btn.dataset.editTask, null)));
+      container.querySelectorAll('[data-edit-task]').forEach(btn => {
+        if (sessionAccessMode !== 'director') { btn.classList.add('hidden'); return; }
+        btn.addEventListener('click', () => openTaskModal(btn.dataset.editTask, null));
+      });
       container.querySelectorAll('[data-delete-task]').forEach(btn => {
         btn.addEventListener('click', () => {
           const tk = folder.tasks.find(x => x.id === btn.dataset.deleteTask); if (!tk) return;
           confirmDelete(`Удалить задачу «${tk.title}»?`, () => { folder.tasks = folder.tasks.filter(x => x.id !== tk.id); saveState(); renderAll(); });
         });
       });
+    }
+
+    const LEVEL_DAILY_CAP_MIN = { intern: 180, junior: 240, middle: 320, senior: 390, lead: 420 };
+    const LEVEL_TASK_COUNT_CAP = { intern: 2, junior: 3, middle: 4, senior: 5, lead: 6 };
+
+    function estimateTaskDifficulty(title, desc) {
+      const txt = ((title || '') + ' ' + (desc || '')).toLowerCase();
+      if (/архитектур|движок|мультиплеер|сеть|шейдер|оптимиз|ии|ai|риггинг|rigging|блокаут|blockout|левел|level|c\+\+|shader|boss|босс/.test(txt)) {
+        return { level: 'high', score: 3, labelRu: 'Высокая (техническая / комплексная)', labelEn: 'High (technical / complex)' };
+      }
+      if (/модел|анимац|текстур|интерфейс|ui|звук|механик|скрипт|прототип|концепт|model|anim|texture|sound|script|prototype/.test(txt)) {
+        return { level: 'medium', score: 2, labelRu: 'Средняя (профильная разработка)', labelEn: 'Medium (core production)' };
+      }
+      return { level: 'low', score: 1, labelRu: 'Базовая', labelEn: 'Standard' };
+    }
+
+    function getMemberDayStats(folder, memberId, dayId, excludeTaskId) {
+      const tasks = folder.tasks.filter(tk => tk.assigneeId === memberId && tk.dayId === dayId && tk.status !== 'done' && tk.type === 'personal' && tk.id !== excludeTaskId);
+      const totalMin = tasks.reduce((sum, tk) => sum + (Number(tk.durationMin) || 30), 0);
+      return { count: tasks.length, totalMin, tasks };
+    }
+
+    function findBestAlternativeMember(folder, dayId, excludeMemberId, taskTitle, excludeTaskId) {
+      const candidates = folder.members.filter(m => m.id !== excludeMemberId).map(m => {
+        const st = getMemberDayStats(folder, m.id, dayId, excludeTaskId);
+        const cap = LEVEL_DAILY_CAP_MIN[m.level] || 300;
+        const loadRatio = st.totalMin / cap;
+        return { member: m, stats: st, loadRatio };
+      }).sort((a, b) => a.loadRatio - b.loadRatio);
+      return candidates[0] || null;
+    }
+
+    async function runWorkloadIntelligenceCheck(folder, memberId, dayId, taskTitle, taskDesc, durationMin, excludeTaskId, onConfirmAssign) {
+      const member = folder.members.find(m => m.id === memberId);
+      if (!member) { onConfirmAssign(memberId); return; }
+
+      const stats = getMemberDayStats(folder, memberId, dayId, excludeTaskId);
+      const dayObj = folder.days.find(d => d.id === dayId);
+      const dayTitle = dayObj ? dayObj.title : 'День';
+      const capMin = LEVEL_DAILY_CAP_MIN[member.level] || 300;
+      const capCount = LEVEL_TASK_COUNT_CAP[member.level] || 4;
+      const projectedMin = stats.totalMin + (Number(durationMin) || 30);
+      const projectedCount = stats.count + 1;
+      const diff = estimateTaskDifficulty(taskTitle, taskDesc);
+      const levelRank = { intern: 1, junior: 2, middle: 3, senior: 4, lead: 5 }[member.level] || 3;
+
+      const isOverloaded = projectedMin > capMin || projectedCount > capCount;
+      const isSkillStretch = diff.score >= 3 && levelRank <= 2;
+
+      if (!isOverloaded && !isSkillStretch) {
+        onConfirmAssign(memberId);
+        return;
+      }
+
+      const bestAlt = findBestAlternativeMember(folder, dayId, memberId, taskTitle, excludeTaskId);
+      const lvObj = SKILL_LEVELS.find(x => x.id === member.level) || SKILL_LEVELS[2];
+
+      let reasons = [];
+      if (projectedCount > capCount) reasons.push(`На «${dayTitle}» у участника станет ${projectedCount} активн. задач (рекомендуемый лимит для ${lvObj.ru}: до ${capCount}).`);
+      if (projectedMin > capMin) reasons.push(`Суммарное время на «${dayTitle}» составит ${projectedMin} мин (~${(projectedMin/60).toFixed(1)} ч) при норме ${capMin} мин.`);
+      if (isSkillStretch) reasons.push(`Задача «${taskTitle}» оценена как сложная (${diff.labelRu}), а текущий уровень участника — ${lvObj.ru}.`);
+
+      // Render Smart Warning Modal immediately (and optionally enrich with Live Gemini AI!)
+      openModal(`
+        <div class="space-y-4">
+          <div class="flex items-center gap-2 text-amber-400">
+            <i data-lucide="brain-circuit" class="w-5 h-5"></i>
+            <h3 class="font-bold text-base">${t('aiCheckTitle')}</h3>
+          </div>
+
+          <div class="card rounded-xl p-3.5 space-y-2 border-amber-500/40">
+            <div class="text-xs font-bold text-amber-300">⚠️ ${t('aiOverloadWarn')}</div>
+            <div class="text-xs"><b>${escapeHtml(member.name)}</b> (${escapeHtml(lvObj.ru)} · ${(member.roles || []).join(', ')})</div>
+            <ul class="text-xs space-y-1 list-disc pl-4" style="color: var(--text-muted);">
+              ${reasons.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+            </ul>
+          </div>
+
+          <div id="aiLiveAdviceBox" class="${state.geminiApiKey ? '' : 'hidden'} card rounded-xl p-3 text-xs space-y-1.5">
+            <div class="font-semibold flex items-center gap-1.5" style="color: var(--accent-2);">🧠 Gemini AI анализирует задачу и команду...</div>
+            <div class="ai-thinking-bar"></div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row flex-wrap justify-end gap-2 pt-2 border-t" style="border-color: var(--border-color);">
+            <button type="button" id="aiCancelBtn" class="px-3.5 py-2 rounded-xl card text-xs">${t('aiCancelAssign')}</button>
+            ${bestAlt ? `<button type="button" id="aiAltAssignBtn" class="px-3.5 py-2 rounded-xl card accent-pill text-xs font-semibold">✨ ${t('aiReassignBtn')} ${escapeHtml(bestAlt.member.name)} (${bestAlt.stats.totalMin}м)</button>` : ''}
+            <button type="button" id="aiForceAssignBtn" class="btn-accent px-4 py-2 rounded-xl text-xs font-semibold">${t('aiAssignAnyway')}</button>
+          </div>
+        </div>
+      `);
+
+      document.getElementById('aiCancelBtn').addEventListener('click', closeModal);
+      document.getElementById('aiForceAssignBtn').addEventListener('click', () => { closeModal(); onConfirmAssign(memberId); });
+      const altBtn = document.getElementById('aiAltAssignBtn');
+      if (altBtn && bestAlt) {
+        altBtn.addEventListener('click', () => { closeModal(); onConfirmAssign(bestAlt.member.id); });
+      }
+
+      // If Live Gemini API key is configured, fetch live expert advice on this exact task!
+      if (state.geminiApiKey) {
+        try {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(state.geminiApiKey.trim())}`;
+          const prompt = `Ты — опытный продюсер игровой/креативной студии. Коротко (2-3 предложения на русском) оцени задачу "${taskTitle}" (${taskDesc || 'без описания'}, ${durationMin} мин) для участника "${member.name}" (уровень: ${lvObj.ru}, опыт: ${member.expText || 'не указан'}, роли: ${(member.roles||[]).join(', ')}). На ${dayTitle} у него уже ${stats.count} задач на ${stats.totalMin} мин. Дай чёткую рекомендацию: потянет ли он или лучше разгрузить/передать ${bestAlt ? bestAlt.member.name : 'другому'}.`;
+          const resp = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const box = document.getElementById('aiLiveAdviceBox');
+            if (box && txt) {
+              box.innerHTML = `<div class="font-semibold" style="color: var(--accent-2);">🧠 Рекомендация Gemini AI:</div><div class="leading-relaxed">${escapeHtml(txt)}</div>`;
+            }
+          }
+        } catch (e) {
+          const box = document.getElementById('aiLiveAdviceBox');
+          if (box) box.classList.add('hidden');
+        }
+      }
     }
 
     function openTaskModal(taskId, presetMilestoneId, presetDayId) {
@@ -2493,9 +2999,18 @@
         const newStatus = document.getElementById('tkStatus').value;
         const wasDone = existing && existing.status === 'done';
         const data = { id: existing ? existing.id : uid('t'), title: document.getElementById('tkTitle').value.trim(), description: document.getElementById('tkDesc').value.trim(), type, assigneeId: type === 'personal' ? document.getElementById('tkAssignee').value : '', status: newStatus, durationMin: dur, remainingSec: existing && existing.durationMin === dur ? existing.remainingSec : dur * 60, running: existing ? existing.running : false, timeSlot: document.getElementById('tkSlot').value.trim(), dayId: document.getElementById('tkDay').value, milestoneId: document.getElementById('tkMilestone').value, onRoadmap: document.getElementById('tkOnRoadmap').checked, isToday: document.getElementById('tkInToday').checked };
-        if (existing) Object.assign(existing, data); else folder.tasks.push(data);
-        saveState(); closeModal(); renderAll(); showToast(t('toastSaved'));
-        if (!wasDone && newStatus === 'done') checkAllTasksVictory(folder);
+        const commitTask = (finalAssigneeId) => {
+          data.assigneeId = data.type === 'personal' ? finalAssigneeId : '';
+          if (existing) Object.assign(existing, data); else folder.tasks.push(data);
+          saveState(); renderAll(); showToast(t('toastSaved'));
+          if (!wasDone && newStatus === 'done') checkAllTasksVictory(folder);
+        };
+        closeModal();
+        if (data.type === 'personal' && data.assigneeId && data.status !== 'done') {
+          runWorkloadIntelligenceCheck(folder, data.assigneeId, data.dayId, data.title, data.description, data.durationMin, existing ? existing.id : null, commitTask);
+        } else {
+          commitTask(data.assigneeId);
+        }
       });
     }
 
@@ -2553,8 +3068,8 @@
                 <button id="rmModeDaysBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${rmMode === 'days' ? 'accent-pill' : ''}">${t('roadmapByDays')}</button>
               </div>
               <div class="flex items-center gap-2 panel px-3 py-1.5 rounded-xl text-xs"><span style="color: var(--text-muted);">${t('zoomLabel')}:</span><input id="roadmapZoomRange" type="range" min="0.75" max="1.35" step="0.05" value="${state.roadmapZoom}" class="w-24 p-0 border-0" /><span class="font-mono w-10">${Math.round(state.roadmapZoom * 100)}%</span></div>
-              <button id="addTaskFromMapBtn" class="px-3.5 py-2 rounded-xl card text-xs font-semibold flex items-center gap-1.5"><i data-lucide="plus-circle" class="w-4 h-4" style="color: var(--accent);"></i><span>${t('addTaskOnMap')}</span></button>
-              <button id="addMilestoneBtn" class="btn-accent px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="flag" class="w-4 h-4"></i><span>${t('addMilestone')}</span></button>
+              ${sessionAccessMode === 'director' ? `<button id="addTaskFromMapBtn" class="px-3.5 py-2 rounded-xl card text-xs font-semibold flex items-center gap-1.5"><i data-lucide="plus-circle" class="w-4 h-4" style="color: var(--accent);"></i><span>${t('addTaskOnMap')}</span></button>
+              <button id="addMilestoneBtn" class="btn-accent px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5"><i data-lucide="flag" class="w-4 h-4"></i><span>${t('addMilestone')}</span></button>` : ''}
             </div>
           </div>
 
@@ -2617,9 +3132,10 @@
       container.querySelectorAll('[data-quick-day-task]').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); openTaskModal(null, null, btn.dataset.quickDayTask); }));
       container.querySelectorAll('[data-inspect-day]').forEach(node => node.addEventListener('click', () => openDayInspectModal(node.dataset.inspectDay)));
       document.getElementById('roadmapZoomRange').addEventListener('input', (e) => { state.roadmapZoom = Number(e.target.value); renderRoadmapTab(container, folder); if (window.lucide) lucide.createIcons(); });
-      document.getElementById('addMilestoneBtn').addEventListener('click', () => openMilestoneModal(null));
-      document.getElementById('addTaskFromMapBtn').addEventListener('click', () => openTaskModal(null, fallbackMsId));
-      container.querySelectorAll('[data-quick-ms-task]').forEach(btn => btn.addEventListener('click', () => openTaskModal(null, btn.dataset.quickMsTask)));
+      const amsBtn = document.getElementById('addMilestoneBtn'); if (amsBtn) amsBtn.addEventListener('click', () => openMilestoneModal(null));
+      const atmBtn = document.getElementById('addTaskFromMapBtn'); if (atmBtn) atmBtn.addEventListener('click', () => openTaskModal(null, fallbackMsId));
+      container.querySelectorAll('[data-quick-ms-task]').forEach(btn => { if (sessionAccessMode !== 'director') btn.classList.add('hidden'); else btn.addEventListener('click', () => openTaskModal(null, btn.dataset.quickMsTask)); });
+      container.querySelectorAll('[data-quick-day-task]').forEach(btn => { if (sessionAccessMode !== 'director') btn.classList.add('hidden'); });
       container.querySelectorAll('[data-inspect-task]').forEach(chip => chip.addEventListener('click', () => openTaskZoomModal(chip.dataset.inspectTask)));
       container.querySelectorAll('[data-inspect-milestone]').forEach(node => node.addEventListener('click', () => openMilestoneInspectModal(node.dataset.inspectMilestone, isDir)));
     }
@@ -2828,7 +3344,8 @@
           </div>
         </div>
       `;
-      document.getElementById('addDecisionBtn').addEventListener('click', openDecisionModal);
+      const adBtn = document.getElementById('addDecisionBtn');
+      if (adBtn) { if (sessionAccessMode !== 'director') adBtn.classList.add('hidden'); else adBtn.addEventListener('click', openDecisionModal); }
       container.querySelectorAll('[data-del-decision]').forEach(btn => btn.addEventListener('click', () => confirmDelete('Удалить запись решения?', () => { folder.decisions = (folder.decisions || []).filter(x => x.id !== btn.dataset.delDecision); saveState(); renderAll(); })));
     }
 
@@ -2977,6 +3494,63 @@
       document.getElementById('switchModeBtn').addEventListener('click', () => { closeModal(); toggleRoleMode(); });
     }
 
+    function buildFolderShareUrl(folderId, mode) {
+      const f = state.folders.find(x => x.id === folderId) || getActiveFolder();
+      if (!f) return null;
+      const clone = JSON.parse(JSON.stringify(f));
+      clone.members.forEach(m => { if (m.photo && m.photo.length > 2000) m.photo = ''; });
+      const payload = { lang: state.lang, folder: clone };
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+      if (encoded.length > 16000) return null;
+      return window.location.href.split('#')[0] + '#' + mode + '=' + encoded;
+    }
+
+    function openFolderShareModal(folderId) {
+      const f = state.folders.find(x => x.id === folderId) || getActiveFolder();
+      if (!f) return;
+      const isWorker = sessionAccessMode === 'work';
+      openModal(`
+        <div class="space-y-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="link-2" class="w-5 h-5" style="color: var(--accent-2);"></i>
+            <h3 class="font-bold text-base">${t('folderShareTitle')}: ${escapeHtml(f.name)}</h3>
+          </div>
+          <p class="text-xs leading-relaxed" style="color: var(--text-muted);">${t('folderShareDesc')}</p>
+
+          <div class="card rounded-xl p-3.5 space-y-2">
+            <div class="font-bold text-xs flex items-center gap-1.5">👁 ${t('viewLinkTitle')}</div>
+            <p class="text-[11px]" style="color: var(--text-muted);">${t('viewLinkDesc')}</p>
+            <button id="copyFolderViewBtn" class="btn-accent w-full py-2 rounded-lg text-xs font-semibold">${isWorker ? t('copyBackReportBtn') : t('copyViewLinkBtn')}</button>
+          </div>
+
+          ${isWorker ? '' : `
+          <div class="card rounded-xl p-3.5 space-y-2">
+            <div class="font-bold text-xs flex items-center gap-1.5">🛠 ${t('workLinkTitle')}</div>
+            <p class="text-[11px]" style="color: var(--text-muted);">${t('workLinkDesc')}</p>
+            <button id="copyFolderWorkBtn" class="card w-full py-2 rounded-lg text-xs font-semibold accent-pill">${t('copyWorkLinkBtn')}</button>
+          </div>`}
+
+          <div class="flex justify-end"><button id="closeFolderShareBtn" class="px-4 py-1.5 rounded-lg card text-xs">${t('closeBtn')}</button></div>
+        </div>
+      `);
+      document.getElementById('closeFolderShareBtn').addEventListener('click', closeModal);
+      document.getElementById('copyFolderViewBtn').addEventListener('click', () => {
+        const url = buildFolderShareUrl(f.id, 'view');
+        if (!url) { showToast(t('toastLinkTooLarge')); return; }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => showToast(t('viewLinkCopied'))).catch(() => fallbackCopy(url));
+        else fallbackCopy(url);
+      });
+      const wBtn = document.getElementById('copyFolderWorkBtn');
+      if (wBtn) {
+        wBtn.addEventListener('click', () => {
+          const url = buildFolderShareUrl(f.id, 'work');
+          if (!url) { showToast(t('toastLinkTooLarge')); return; }
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => showToast(t('workLinkCopied'))).catch(() => fallbackCopy(url));
+          else fallbackCopy(url);
+        });
+      }
+    }
+
     function openGuideModal() {
       openModal(`
         <div class="space-y-3 text-xs leading-relaxed">
@@ -3009,11 +3583,23 @@
     async function initApp() {
       await loadStateAsync();
       document.getElementById('backToHomeBtn').addEventListener('click', () => { state.view = 'home'; saveState(); renderAll(); });
+      document.getElementById('shareFolderHeaderBtn').addEventListener('click', () => openFolderShareModal(state.activeFolderId));
+      document.getElementById('toggleAmbientBtn').addEventListener('click', () => {
+        ambientEnabled = !ambientEnabled;
+        if (ambientEnabled) { state.muted = false; startAmbientSound(getCurrentSoundProfile()); }
+        else { stopAmbientSound(); }
+        renderAll();
+      });
       document.getElementById('openThemeModalBtn').addEventListener('click', openThemeModal);
       document.getElementById('openShareModalBtn').addEventListener('click', openShareModal);
       document.getElementById('openGuideBtn').addEventListener('click', openGuideModal);
       document.getElementById('toggleRoleLockBtn').addEventListener('click', toggleRoleMode);
-      document.getElementById('toggleMuteBtn').addEventListener('click', () => { state.muted = !state.muted; saveState(); renderAll(); });
+      document.getElementById('toggleMuteBtn').addEventListener('click', () => {
+        state.muted = !state.muted;
+        if (state.muted) stopAmbientSound();
+        else if (ambientEnabled) startAmbientSound(getCurrentSoundProfile());
+        saveState(); renderAll();
+      });
       document.getElementById('toggleLangBtn').addEventListener('click', () => { state.lang = state.lang === 'ru' ? 'en' : 'ru'; saveState(); renderAll(); });
       document.getElementById('fxLevelSelect').addEventListener('change', (e) => { state.fxLevel = e.target.value; saveState(); renderAll(); });
       document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => { state.activeTab = btn.dataset.tab; saveState(); renderAll(); }));
