@@ -541,6 +541,17 @@
         allFoldersBtn: 'Все папки',
         saved: 'Сохранено (БД)',
         savedDisk: 'Синхр. с файлом',
+        savedCloud: '☁️ Облако (Live)',
+        cloudSectionTitle: '☁️ Облачная база данных (Supabase — единая ссылка для всех)',
+        cloudSectionDesc: 'Подключите бесплатную БД Supabase, чтобы данные НИКОГДА не удалялись при очистке истории браузера, а ссылки на папки были короткими и обновлялись в реальном времени без пересоздания.',
+        cloudUrlPlaceholder: 'Supabase URL (https://xxxxx.supabase.co)',
+        cloudKeyPlaceholder: 'Supabase Publishable / anon key',
+        cloudConnectBtn: 'Подключить облако',
+        cloudCopySqlBtn: 'Скопировать SQL таблицы',
+        cloudConnectedToast: 'Облачная БД подключена и синхронизирована!',
+        cloudErrorToast: 'Ошибка подключения к Supabase — проверьте URL, ключ и таблицу hub_folders.',
+        cloudSqlCopied: 'SQL скопирован! Вставьте его в Supabase → SQL Editor и нажмите Run.',
+        cloudLiveLinkNote: '☁️ Живая облачная ссылка — обновляется автоматически, пересоздавать не нужно!',
         themeBtn: 'ИИ-Дизайн и FX',
         shareBtn: 'Сейв / ИИ-ключ',
         shareFolderBtn: 'Поделиться',
@@ -755,6 +766,17 @@
         allFoldersBtn: 'All Folders',
         saved: 'Saved (DB)',
         savedDisk: 'Synced to Disk',
+        savedCloud: '☁️ Cloud (Live)',
+        cloudSectionTitle: '☁️ Cloud Database (Supabase — One Live Link for Everyone)',
+        cloudSectionDesc: 'Connect a free Supabase database so data NEVER clears with browser history and folder links stay short and live-synced without re-sharing.',
+        cloudUrlPlaceholder: 'Supabase URL (https://xxxxx.supabase.co)',
+        cloudKeyPlaceholder: 'Supabase Publishable / anon key',
+        cloudConnectBtn: 'Connect Cloud',
+        cloudCopySqlBtn: 'Copy Table SQL',
+        cloudConnectedToast: 'Cloud DB connected and synced!',
+        cloudErrorToast: 'Supabase connection error — check URL, key, and hub_folders table.',
+        cloudSqlCopied: 'SQL copied! Paste into Supabase → SQL Editor and click Run.',
+        cloudLiveLinkNote: '☁️ Live cloud link — auto-updates in real time, never needs re-sharing!',
         themeBtn: 'AI Design & FX',
         shareBtn: 'Save / AI Key',
         shareFolderBtn: 'Share',
@@ -1377,6 +1399,70 @@
     /* =========================================================================
        3. DUAL PERSISTENCE (INDEXEDDB + LOCALSTORAGE + AUTO-DISK FILE)
     ========================================================================= */
+    // ВСТАВЬ СЮДА URL И КЛЮЧ SUPABASE ОДИН РАЗ В index.html НА GITHUB, ЧТОБЫ ЖИВЫЕ ССЫЛКИ РАБОТАЛИ У ВСЕХ БЕЗ НАСТРОЙКИ:
+    const DEFAULT_CLOUD_CONFIG = {
+      url: '', // например: 'https://xxxxxxxx.supabase.co'
+      key: ''  // ваш Supabase Publishable / anon key
+    };
+
+    const CLOUD_SETUP_SQL = `create table if not exists hub_folders (
+  id text primary key,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+alter table hub_folders enable row level security;
+drop policy if exists "public_hub_access" on hub_folders;
+create policy "public_hub_access" on hub_folders for all using (true) with check (true);`;
+
+    function getCloudConfig() {
+      const url = ((state && state.cloudUrl) || DEFAULT_CLOUD_CONFIG.url || '').trim().replace(/\/+$/, '');
+      const key = ((state && state.cloudKey) || DEFAULT_CLOUD_CONFIG.key || '').trim();
+      return (url && key) ? { url, key } : null;
+    }
+
+    async function cloudFetchFolders(singleFolderId) {
+      const cfg = getCloudConfig();
+      if (!cfg) return null;
+      try {
+        const filter = singleFolderId ? `?id=eq.${encodeURIComponent(singleFolderId)}&select=id,data` : `?select=id,data&order=updated_at.desc`;
+        const resp = await fetch(`${cfg.url}/rest/v1/hub_folders${filter}`, {
+          headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+        });
+        if (!resp.ok) return null;
+        const rows = await resp.json();
+        return Array.isArray(rows) ? rows.map(r => r.data).filter(Boolean) : null;
+      } catch (e) { return null; }
+    }
+
+    async function cloudUpsertFolder(folder) {
+      const cfg = getCloudConfig();
+      if (!cfg || !folder || !folder.id) return false;
+      try {
+        const resp = await fetch(`${cfg.url}/rest/v1/hub_folders`, {
+          method: 'POST',
+          headers: {
+            'apikey': cfg.key,
+            'Authorization': `Bearer ${cfg.key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({ id: folder.id, data: folder, updated_at: new Date().toISOString() })
+        });
+        return resp.ok;
+      } catch (e) { return false; }
+    }
+
+    async function cloudDeleteFolder(folderId) {
+      const cfg = getCloudConfig();
+      if (!cfg || !folderId) return;
+      try {
+        await fetch(`${cfg.url}/rest/v1/hub_folders?id=eq.${encodeURIComponent(folderId)}`, {
+          method: 'DELETE',
+          headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+        });
+      } catch (e) {}
+    }
+
     const STORAGE_KEY = 'studio_command_hub_v4';
     const IDB_NAME = 'StudioCommandHubDB';
     const IDB_STORE = 'workspace';
@@ -1484,6 +1570,31 @@
     let dragTaskId = null;
 
     async function loadStateAsync() {
+      // 0. Check Live Cloud Share URL (?cloud=FOLDER_ID&mode=view|work)
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const cloudId = params.get('cloud');
+        const cloudMode = params.get('mode');
+        const urlOverride = params.get('su');
+        const keyOverride = params.get('sk');
+        if (cloudId && (cloudMode === 'view' || cloudMode === 'work')) {
+          state = createDefaultState();
+          if (urlOverride) state.cloudUrl = decodeURIComponent(urlOverride);
+          if (keyOverride) state.cloudKey = decodeURIComponent(keyOverride);
+          sessionAccessMode = cloudMode;
+          const rows = await cloudFetchFolders(cloudId);
+          if (rows && rows.length > 0) {
+            state.folders = [rows[0]];
+            state.activeFolderId = rows[0].id;
+            state.view = 'folder';
+            state.activeTab = cloudMode === 'view' ? 'roadmap' : 'tasks';
+            state.roleMode = 'member';
+            ensureFolderDays(rows[0]);
+            return;
+          }
+        }
+      } catch (e) {}
+
       try {
         const h = window.location.hash || '';
         if (h.startsWith('#view=') || h.startsWith('#work=')) {
@@ -1552,17 +1663,42 @@
       state = createDefaultState();
     }
 
+    async function syncFromCloudIfConfigured() {
+      if (sessionAccessMode !== 'director' || !getCloudConfig()) return;
+      const remoteFolders = await cloudFetchFolders(null);
+      if (remoteFolders && remoteFolders.length > 0) {
+        state.folders = remoteFolders;
+        if (!state.folders.some(f => f.id === state.activeFolderId)) {
+          state.activeFolderId = state.folders[0].id;
+        }
+        state.folders.forEach(f => ensureFolderDays(f));
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+        idbSave(state);
+        renderAll();
+      }
+    }
+
+    let cloudSaveTimer = null;
+    function scheduleCloudSave(folder) {
+      if (!getCloudConfig() || !folder) return;
+      if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+      cloudSaveTimer = setTimeout(() => { cloudUpsertFolder(folder); }, 450);
+    }
+
     function saveState() {
       if (sessionAccessMode === 'view') return;
+      const activeF = getActiveFolder();
       if (sessionAccessMode === 'work') {
         try { localStorage.setItem('studio_hub_work_session_' + state.activeFolderId, JSON.stringify(state.folders[0])); } catch (e) {}
+        if (activeF) scheduleCloudSave(activeF);
         return;
       }
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
       idbSave(state);
       writeToLinkedDiskFile(state);
+      if (activeF) scheduleCloudSave(activeF);
       const stText = document.getElementById('saveStatusText');
-      if (stText) stText.textContent = linkedFileHandle ? t('savedDisk') : t('saved');
+      if (stText) stText.textContent = getCloudConfig() ? t('savedCloud') : (linkedFileHandle ? t('savedDisk') : t('saved'));
     }
 
     function t(key) { return (I18N[state.lang] && I18N[state.lang][key]) || I18N.ru[key] || key; }
@@ -2107,7 +2243,7 @@
       document.getElementById('headerSubtitle').textContent = folder
         ? `🎨 ${folder.theme.prompt} · ${state.lang === 'ru' ? folder.theme.moodLabelRu : folder.theme.moodLabelEn}`
         : t('hubSubtitle');
-      document.getElementById('saveStatusText').textContent = linkedFileHandle ? t('savedDisk') : t('saved');
+      document.getElementById('saveStatusText').textContent = getCloudConfig() ? t('savedCloud') : (linkedFileHandle ? t('savedDisk') : t('saved'));
       document.getElementById('toggleLangBtn').textContent = state.lang.toUpperCase();
       document.getElementById('fxLevelSelect').value = state.fxLevel;
 
@@ -2220,6 +2356,7 @@
           const f = state.folders.find(x => x.id === btn.dataset.delFolder);
           if (!f) return;
           confirmDelete(`Удалить папку «${f.name}» со всеми данными?`, () => {
+            cloudDeleteFolder(f.id);
             state.folders = state.folders.filter(x => x.id !== f.id);
             if (state.activeFolderId === f.id) state.activeFolderId = (state.folders[0] || {}).id || '';
             saveState(); renderAll(); showToast(t('toastSaved'));
@@ -3437,6 +3574,17 @@
           </div>
 
           <div class="pt-3 border-t space-y-2" style="border-color: var(--border-color);">
+            <div class="font-bold text-xs flex items-center gap-1.5">${t('cloudSectionTitle')}</div>
+            <p class="text-[11px]" style="color: var(--text-muted);">${t('cloudSectionDesc')}</p>
+            <input id="cloudUrlInput" type="url" class="w-full" value="${escapeHtml((state.cloudUrl || DEFAULT_CLOUD_CONFIG.url || ''))}" placeholder="${t('cloudUrlPlaceholder')}" />
+            <input id="cloudKeyInput" type="password" class="w-full" value="${escapeHtml((state.cloudKey || DEFAULT_CLOUD_CONFIG.key || ''))}" placeholder="${t('cloudKeyPlaceholder')}" />
+            <div class="flex flex-wrap gap-2">
+              <button id="connectCloudBtn" class="btn-accent px-3.5 py-1.5 rounded-lg text-xs font-semibold">${t('cloudConnectBtn')}</button>
+              <button id="copyCloudSqlBtn" class="px-3.5 py-1.5 rounded-lg card text-xs font-semibold">📋 ${t('cloudCopySqlBtn')}</button>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t space-y-2" style="border-color: var(--border-color);">
             <div class="font-bold text-xs flex items-center gap-1.5">🧠 ${t('aiKeySectionTitle')}</div>
             <p class="text-[11px]" style="color: var(--text-muted);">${t('aiKeyDesc')}</p>
             <div class="flex gap-2">
@@ -3461,6 +3609,24 @@
           linkedFileHandle = await window.showSaveFilePicker({ suggestedName: 'studio-command-hub-save.json', types: [{ description: 'JSON Save', accept: { 'application/json': ['.json'] } }] });
           await writeToLinkedDiskFile(state); saveState(); showToast(t('toastDiskLinked'));
         } catch (e) {}
+      });
+      document.getElementById('copyCloudSqlBtn').addEventListener('click', () => {
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(CLOUD_SETUP_SQL).then(() => showToast(t('cloudSqlCopied'))).catch(() => fallbackCopy(CLOUD_SETUP_SQL));
+        else fallbackCopy(CLOUD_SETUP_SQL);
+      });
+      document.getElementById('connectCloudBtn').addEventListener('click', async () => {
+        state.cloudUrl = document.getElementById('cloudUrlInput').value.trim().replace(/\/+$/, '');
+        state.cloudKey = document.getElementById('cloudKeyInput').value.trim();
+        saveState();
+        if (!getCloudConfig()) { renderAll(); showToast(t('toastSaved')); return; }
+        const ok = await cloudUpsertFolder(getActiveFolder());
+        if (ok) {
+          for (const f of state.folders) await cloudUpsertFolder(f);
+          showToast(t('cloudConnectedToast'));
+          renderAll();
+        } else {
+          showToast(t('cloudErrorToast'));
+        }
       });
       document.getElementById('saveAiKeyBtn').addEventListener('click', () => {
         state.geminiApiKey = document.getElementById('geminiKeyInput').value.trim();
@@ -3498,12 +3664,22 @@
     function buildFolderShareUrl(folderId, mode) {
       const f = state.folders.find(x => x.id === folderId) || getActiveFolder();
       if (!f) return null;
+      const cfg = getCloudConfig();
+      const base = window.location.href.split('#')[0].split('?')[0];
+      if (cfg) {
+        cloudUpsertFolder(f);
+        // If keys are embedded in DEFAULT_CLOUD_CONFIG, URL is super clean & short; otherwise include params
+        const extra = (DEFAULT_CLOUD_CONFIG.url && DEFAULT_CLOUD_CONFIG.key)
+          ? ''
+          : `&su=${encodeURIComponent(cfg.url)}&sk=${encodeURIComponent(cfg.key)}`;
+        return `${base}?cloud=${encodeURIComponent(f.id)}&mode=${mode}${extra}`;
+      }
       const clone = JSON.parse(JSON.stringify(f));
       clone.members.forEach(m => { if (m.photo && m.photo.length > 2000) m.photo = ''; });
       const payload = { lang: state.lang, folder: clone };
       const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
       if (encoded.length > 16000) return null;
-      return window.location.href.split('#')[0] + '#' + mode + '=' + encoded;
+      return base + '#' + mode + '=' + encoded;
     }
 
     function openFolderShareModal(folderId) {
@@ -3517,6 +3693,7 @@
             <h3 class="font-bold text-base">${t('folderShareTitle')}: ${escapeHtml(f.name)}</h3>
           </div>
           <p class="text-xs leading-relaxed" style="color: var(--text-muted);">${t('folderShareDesc')}</p>
+          ${getCloudConfig() ? `<div class="text-xs px-3 py-2 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">${t('cloudLiveLinkNote')}</div>` : ''}
 
           <div class="card rounded-xl p-3.5 space-y-2">
             <div class="font-bold text-xs flex items-center gap-1.5">👁 ${t('viewLinkTitle')}</div>
@@ -3625,6 +3802,18 @@
 
       renderAll();
       startGlobalTimer();
+      await syncFromCloudIfConfigured();
+      setInterval(async () => {
+        if (!getCloudConfig()) return;
+        if (sessionAccessMode === 'view' || sessionAccessMode === 'work') {
+          const rows = await cloudFetchFolders(state.activeFolderId);
+          if (rows && rows.length > 0 && sessionAccessMode === 'view') {
+            state.folders = [rows[0]];
+            ensureFolderDays(rows[0]);
+            renderAll();
+          }
+        }
+      }, 20000);
     }
 
     window.addEventListener('DOMContentLoaded', initApp);
